@@ -1,4 +1,17 @@
 import xml.etree.ElementTree as ET
+from bitstream_constructor import BitstreamConstructor
+
+parser = PDMLParse(sys.argv[1]) #second parameter to run?
+
+for fields in parser.iterate_packets():
+  Analyze(fields).validate()
+  segments = Analyze(fields).get_segments()
+
+  raw_bytes = BitstreamConstructor(segments).bytes()
+  bitstream = BitstreamConstructor(segments).bits()
+
+  print("Raw bytes:", raw_bytes.hex())
+  print("Bitstream:", bitstream)
 
 class PDMLParse:
   def __init__(self, filepath):
