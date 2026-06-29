@@ -1,1 +1,1 @@
-
+class BitstreamConstructor:
