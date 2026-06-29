@@ -5,6 +5,10 @@ class PDMLParse:
     self.tree = ET.parse(filepath)
     self.root = self.tree.getroot()
 
+  def iterate_packets(self):
+    for packet in self.root.findall(".//packet"):
+      yield self.parse_packet(packet)
+      
   def parse_packet(self, packet):
     fields = []
       for f in packet.findall(".//field"):
@@ -20,6 +24,4 @@ class PDMLParse:
                 })
       return sorted(fields, key=lambda x: x["pos"])
 
-  def iterate_packets(self):
-    for packet in self.root.findall(".//packet"):
-      yield self.parse_packet(packet)
+
