@@ -46,11 +46,13 @@ class Analyze:
 parser = PDMLParse(sys.argv[1]) #second parameter to run?
 
 for fields in parser.iterate_packets():
-  Analyze(fields).validate()
-  segments = Analyze(fields).get_segments()
+  analyzer = Analyze(fields)
+  analyzer.validate()
+  segments = analyzer.get_segments()
 
-  raw_bytes = BitstreamConstructor(segments).bytes()
-  bitstream = BitstreamConstructor(segments).bits()
+  constructor = BitstreamConstructor(segments)
+  raw_bytes = constructor.bytes()
+  bitstream = constructor.bits()
 
   print("Raw bytes:", raw_bytes.hex())
   print("Bitstream:", bitstream)
