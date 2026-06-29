@@ -14,6 +14,8 @@ class PDMLParse:
       size = f.get("size")
       value = f.get("value")
       if pos and size and value:
+        if len(value) % 2 == 1:
+            value = "0" + value
         fields.append({
           "name": f.get("name"),
           "pos": int(pos),
