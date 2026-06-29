@@ -5,5 +5,5 @@ class BitstreamConstructor:
     def bytes(self):
       return b"".join(seg[1] for seg in self.segments)
 
-    def bites(self):
+    def bits(self):
       return "".join(f"{byte:08b}" for byte in raw)
