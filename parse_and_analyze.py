@@ -9,23 +9,23 @@ class PDMLParse:
       pos = f.get("pos")
       size = f.get("size")
 
-      #validate value
-      value = f.get("value")
-      if value is None or any(c not in "0123456789abcdefABCDEF" for c in value):
+      raw = f.get("value")
+      if raw is None:
         continue
 
-      value = value.replace("0x","").replace(":","").replace("-","").strip()
+      clean = raw.replace("0x","").replace(":","").replace("-","").strip()
+      if any(c not in "0123456789abcdefABCDEF" for c in clean):
+        continue
 
-      if len(value) % 2 == 1:
-        value = "0" + value
-      ######
+      if len(clean) % 2 == 1:
+        clean = "0" + clean
       
-      if pos and size and value:
+      if pos and size and clean:
         fields.append({
           "name": f.get("name"),
           "pos": int(pos),
           "size": int(size),
-          "value": bytes.fromhex(value)
+          "value": bytes.fromhex(clean)
           })
     return sorted(fields, key=lambda x: x["pos"])#list of fields sorted by position
 
