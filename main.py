@@ -1,6 +1,7 @@
 import sys
 import xml.etree.ElementTree as ET
 from bitstream_constructor import BitstreamConstructor
+from parse_and_analyze import PDMLParse, Analyze
 
 
 
