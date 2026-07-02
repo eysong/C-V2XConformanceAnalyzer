@@ -15,8 +15,6 @@ from ieee16092_ref_tables import ieee16092_spdu_refdf
 
 # GLOBAL ACCESSED DATAFRAMES/VARIABLES
 faildf = pd.DataFrame(columns=["field", "parent", "message", "length", "value", "occurrences", "fail description"])   # DataFrame where each row is the_files of analysis for a FAILED field.
-# assessdf = pd.DataFrame(columns=["field", "parent", "message", "length", "value", "compliant", "occurrences"]) # DataFrame where each row is the_files of analysis for a field.
-# skipdf = pd.DataFrame(columns=["field", "parent", "message"]) # DataFrame where each row is a skipped line (not a checked field).
 iop_file = True
 iop_file_fail_desc = ""
 
@@ -106,7 +104,7 @@ def analyze(tree):
     # DETERMINE PACKET AND PROTOCOL
     for packet in tree.getroot():   # recursively move through packets/protocols
         iop_packet = True
-        for proto in packet.iter('proto'):
+        for proto in packet.iter('proto'): #CHANGED from proto in packet: to allow for wider compatability
             iop_proto = True
             refdf = None
             messagename = None
@@ -131,8 +129,6 @@ def analyze(tree):
                         case _:
                             iop_file = False
                             iop_file_fail_desc = iop_file_fail_desc + "Invalid messageId: " + messageId + "\n"
-                else:
-                    iop_file = False
             elif ("16093" in proto.attrib.get('name')): # IEEE 1609.3
                 messagename = "IEEE 1609.3: WAVE Short Message Protocol"
                 refdf = ieee16093_wsmp_refdf
@@ -140,7 +136,6 @@ def analyze(tree):
                 messagename = "IEEE 1609.2: WAVE Security Signed Data"
                 refdf = ieee16092_spdu_refdf
             else:
-                print(repr(proto.attrib.get('name')))
                 continue
 
             if (messagename is not None):
@@ -286,8 +281,6 @@ def analyze(tree):
         print("File Interoperability: FAIL")
         print(faildf)
     print("\n-------------------------------------------------------------------------------------------------------------------\n")
-    # print(assessdf)
-    # print(skipdf)
 
 # MAIN PROGRAM
 def main():
