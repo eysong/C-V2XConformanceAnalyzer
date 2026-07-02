@@ -42,16 +42,16 @@ import pandas as pd
 # 6 = UTF8 string [minlen, maxlen]
 # 7 = signer [00, 00]
 
-ieee16092_spdu_ref = [
+ieee16092_spdu_ref = [# col[0] = field name, col[1] = parent name, col[2] = length, col[3] = eval method, col[4] = ref value 1, col[5] = ref value 2, col[6] = mandatory?
     ["16092.version", "16092", 1, 0, 3, 3, True],
     ["16092.hashalg", "16092.content", 1, 4, 00, 00, True],
-    ["16092.version", "16092.tabsData", 1, 0, 3, 3, False],
-    ["16092.psid", "16092.headerInfo", 8, 0, 0, 18446744073709551615, True],
+    ["16092.version", "16092.tbsData", 1, 0, 3, 3, False],
+    ["16092.psid", "16092.headerInfo", 4, 0, 0, 4294967295, True],
     ["16092.generationTime64", "16092.headerInfo", 8, 0, 0, 18446744073709551615, False],
     ["16092.3d_lat", "16092.generationLocation", 4, 0, -900000000, 900000001, False],
     ["16092.3d_lon", "16092.generationLocation", 4, 0, -1799999999, 1800000001, False],
     ["16092.3d_elev", "16092.generationLocation", 2, 0, -4095, 61439, False],
-    ["16092.signer", "16092.content", 1, 7, 00, 00, False],
+    ["16092.signer", "16092.SignedData", 1, 7, 00, 00, False],
     # signer = "digest"
     ["16092.hashedid", "16092.signer", 8, 1, 8, 00, False],
     ["16092.ecc_key_x", "16092.signature", 32, 1, 32, 00, False],
