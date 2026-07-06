@@ -1,7 +1,7 @@
-#C-V2X Conformance Analyzer
+# C-V2X Conformance Analyzer
 This repository is a software tool to analyze the conformance of C-V2X messages based on testing packet datasets and SAE J2735, IEEE 1609.2 and 1609.3 standards.
 
-##How to Use
+## How to Use
 1. Install git and Python 3.14. The installation procedure varies depending on your operating system.
 
 * On Debian and Ubuntu Linux, run `sudo apt install git python3-pip` in a terminal.
