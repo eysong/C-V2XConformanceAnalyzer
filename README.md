@@ -15,18 +15,6 @@ This repository is a software tool to analyze the conformance of C-V2X messages 
     pip install -U --user pdm
     ```
 
-    Alternatively, using [pipx](https://pipx.pypa.io/stable/):
-
-    ```shell
-    pipx install pdm
-    ```
-
-    Or with [uv](https://docs.astral.sh/uv/):
-
-    ```shell
-    uv tool install pdm
-    ```
-
     Refer to the [PDM documentation](https://pdm-project.org/en/latest/#installation) for more installation options.
 
 1. Clone this repository.
