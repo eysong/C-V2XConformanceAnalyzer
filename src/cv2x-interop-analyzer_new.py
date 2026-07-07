@@ -68,24 +68,38 @@ def hashalg_list(field):
 def ia5str(row, fieldval, fieldlen):
     minlength = row.get('val1').values[0]
     maxlength = row.get('val2').values[0]
-    if (not (minlength <= fieldlen) and not (fieldlen >= maxlength)):
+
+    #print(
+        f"IA5 DEBUG: '{fieldval}' "
+        f"len={fieldlen} "
+        f"allowed={minlength}-{maxlength}"
+    )
+
+    if fieldlen < minlength or fieldlen > maxlength:
         return False
+
     try:
-        fieldval.encode(encoding = 'ascii')
+        fieldval.encode("ascii")
     except UnicodeEncodeError:
         return False
+
     return True
 
 # Eval Method 6: UTF8 string
 def utf8str(row, fieldval, fieldlen):
     minlength = row.get('val1').values[0]
     maxlength = row.get('val2').values[0]
-    if (not (minlength <= fieldlen) and not (fieldlen >= maxlength)):
-        return False
+
+    # 0,0 means no length restriction
+    if not (minlength == 0 and maxlength == 0):
+        if fieldlen < minlength or fieldlen > maxlength:
+            return False
+
     try:
-        fieldval.encode(encoding = 'UTF-8')
+        fieldval.encode("UTF-8")
     except UnicodeEncodeError:
         return False
+
     return True
 
 # Eval Method 7: signer
@@ -95,6 +109,18 @@ def signer(field):
         return True
     else:
         return False
+
+def normalize_field_name(fieldname):
+    if fieldname is None:
+        return None
+
+    # Remove Wireshark version prefixes
+    fieldname = fieldname.replace("j2735_2016.", "j2735.")
+
+    # Remove vendor suffixes like _01, _02, _03
+    fieldname = re.sub(r"_(\d+)$", "", fieldname)
+
+    return fieldname
 
 # ------- ANALYZE PDML METHOD: Given a tree (parsed XML file), will iterate through every field of each relevant message to determine interoperability and compliance to standards. -------
 def analyze(tree):
@@ -144,16 +170,16 @@ def analyze(tree):
 
             # SET MESSAGE REFERENCE TABLE VARIABLES FOR SEQUENCE CHECKING
             if ((refdf is not None) and (not refdf.empty)):
-                mand_index = 0
-                while ((refdf.iloc[mand_index].get('mandatory') != True)):
-                    mand_index += 1
+                mandatory_sequence = (
+                    refdf[refdf["mandatory"] == True]
+                    [["field", "parent"]]
+                    .reset_index(drop=True)
+                )
 
-                lastmand_index = len(refdf.index) - 1
-                while (refdf.iloc[lastmand_index].get('mandatory') != True):
-                    lastmand_index -= 1
+                mand_index = 0
 
                 # ------- IoP ANALYSIS -------
-                for field in proto.iter():  # iteratively move through fields
+                for field in proto.iter('field'):  # iteratively move through fields
                     iop_tag = True
                     iop_length = True
                     iop_value = True
@@ -161,8 +187,8 @@ def analyze(tree):
                     iop_field = True
                     iop_fail_desc = ""
 
-                    fieldname = str(field.attrib.get('name'))
-                    parentname = str(field.getparent().attrib.get('name'))
+                    fieldname = normalize_field_name(field.attrib.get('name'))
+                    parentname = str(field.getparent().attrib.get("name"))
 
                     if (fieldname == "per.optional_field_bit"): # optional field handler
                         if ("True" in str(field.attrib.get('showname'))):
@@ -171,8 +197,15 @@ def analyze(tree):
                             continue
 
                     row = refdf.loc[(refdf['field'] == fieldname) & (refdf['parent'] == parentname)]    # get row based on field name and parent name
-
+                    if row.empty:
+                        #if fieldname.startswith("j2735"):
+                            #print(f"Unknown field: {fieldname} (parent={parentname})")
+                        continue
+                    
                     if ((len(row.index) != 1)): # (there should only be 1 entry per unique pair of field name and parent name)
+                        #print("NO MATCH")
+                        #print(" Field :", fieldname)
+                        #print(" Parent:", parentname)
                         if ((len(row.index) != 0) and not row.empty):
                             iop_tag = False
                             iop_fail_desc = iop_fail_desc + "Invalid/Repeated tag. "
@@ -181,19 +214,26 @@ def analyze(tree):
                         #     skipdf.loc[len(skipdf.index)] = [fieldname, parentname, messagename]
                     else:
                         # SEQUENCE CHECKING
-                        fieldmand_ref = row.get('mandatory').values[0]
-                        lastmand_reached = False
-                        if (fieldmand_ref): # if field is mandatory
-                            if (mand_index == lastmand_index):  # if reached the end of the mandatory fields in table
-                                    lastmand_reached = True
-                            if ((fieldname != refdf.iloc[mand_index].get('field')) and not lastmand_reached):   # if current (mandatory) field does not match the intended mandatory field in sequence
-                                iop_sequence = False
-                                iop_fail_desc = iop_fail_desc + "Sequence incorrect: should be " + refdf.iloc[mand_index].get('field') + ". "
+                        fieldmand_ref = row.get("mandatory").values[0]
+
+                        if fieldmand_ref and mand_index < len(mandatory_sequence):
+                            expected = mandatory_sequence.iloc[mand_index]
+
+                            expected_field = expected["field"]
+                            expected_parent = expected["parent"]
+
+                            if (fieldname == expected_field and parentname == expected_parent):
+                                mand_index += 1
                             else:
-                                if (mand_index < lastmand_index):   # if haven't reached the end of the mandatory fields in table
-                                    mand_index += 1
-                                    while ((refdf.iloc[mand_index].get('mandatory') != True) and (mand_index < lastmand_index)):    # go to next mandatory field in table
-                                        mand_index += 1
+                                iop_sequence = False
+                                iop_fail_desc += (
+                                    f"Sequence incorrect: "
+                                    f"expected {expected_field} "
+                                    f"in {expected_parent}. "
+                                )
+                                #print("\nSEQUENCE ERROR")
+                                #print("Current :", fieldname, parentname)
+                                #print("Expected:", expected_field, expected_parent)
 
                         # LENGTH EVALUATION OF FIELD
                         fieldlen = int(field.attrib.get('size'), 10)
@@ -204,41 +244,47 @@ def analyze(tree):
                         # CONVERT STRING (FROM DATAFILE) TO INT VALUES
                         try:
                             fieldval = int(field.attrib.get('show'), 10)
-                        except ValueError:
-                            fieldval = int(field.attrib.get('value'), 16)
+                        except (ValueError, TypeError):
+                            try:
+                                fieldval = int(field.attrib.get('value'), 16)
+                            except (ValueError, TypeError):
+                                iop_value = False
+                                iop_fail_desc += "Unable to parse value. "
+                                fieldval = None
 
                         # QUANTITATIVE (VALUE) EVALUATION OF FIELD
                         eval_method = row.get('eval method').values[0]
-                        match eval_method:  # determine how the field should be evaluated based on standard
-                            case 0:
-                                iop_value = compare_min_max(row, fieldval)
-                            case 1:
-                                iop_value = octet_count(row, fieldlen)
-                            case 2:
-                                if (not (re.findall(r"bit length", str(field.attrib.get('showname'))))):
+                        if fieldval is not None:
+                            match eval_method:  # determine how the field should be evaluated based on standard
+                                case 0:
+                                    iop_value = compare_min_max(row, fieldval)
+                                case 1:
+                                    iop_value = octet_count(row, fieldlen)
+                                case 2:
+                                    if (not (re.findall(r"bit length", str(field.attrib.get('showname'))))):
+                                        continue
+                                    else:
+                                        iop_value = bit_string(row, field, iop_fail_desc)
+                                case 3:
+                                    iop_value = boolean_check(fieldval)
+                                case 4:
+                                    fieldval = re.findall(r"HashAlgorithm: (\w+)", str(field.attrib.get('showname')))[0]
+                                    iop_value = hashalg_list(field)
+                                case 5:
+                                    fieldval = re.findall(r": (.+)", str(field.attrib.get('showname')))[0]
+                                    iop_value = ia5str(row, fieldval, fieldlen)
+                                case 6:
+                                    fieldval = re.findall(r": (.+)", str(field.attrib.get('showname')))[0]
+                                    iop_value = utf8str(row, fieldval, fieldlen)
+                                case 7:
+                                    fieldval = re.findall(r"signer: (\w+)", str(field.attrib.get('showname')))[0]
+                                    iop_value = signer(field)
+                                case _:
+                                    iop_value = False
+                                    iop_fail_desc = iop_fail_desc + "Invalid evaluation method. "
                                     continue
-                                else:
-                                    iop_value = bit_string(row, field, iop_fail_desc)
-                            case 3:
-                                iop_value = boolean_check(fieldval)
-                            case 4:
-                                fieldval = re.findall(r"HashAlgorithm: (\w+)", str(field.attrib.get('showname')))[0]
-                                iop_value = hashalg_list(field)
-                            case 5:
-                                fieldval = re.findall(r": (.+)", str(field.attrib.get('showname')))[0]
-                                iop_value = ia5str(row, fieldval, fieldlen)
-                            case 6:
-                                fieldval = re.findall(r": (.+)", str(field.attrib.get('showname')))[0]
-                                iop_value = utf8str(row, fieldval, fieldlen)
-                            case 7:
-                                fieldval = re.findall(r"signer: (\w+)", str(field.attrib.get('showname')))[0]
-                                iop_value = signer(field)
-                            case _:
-                                iop_value = False
-                                iop_fail_desc = iop_fail_desc + "Invalid evaluation method. "
-                                continue
-                        if (not iop_value):   # field failed evaluation
-                            iop_fail_desc = iop_fail_desc + "Value out of range/invalid. "
+                            if (not iop_value):   # field failed evaluation
+                                iop_fail_desc = iop_fail_desc + "Value out of range/invalid. "
 
                         # SAVE FIELD RESULTS
                         if (not iop_tag or not iop_length or not iop_value or not iop_sequence):    # at least one T/L/V metric failed
@@ -248,11 +294,28 @@ def analyze(tree):
                             iop_file = False
                             row_fail = faildf.loc[(faildf['field'] == fieldname) & (faildf['parent'] == parentname) & (faildf['message'] == messagename)]
                             # *IF TRACKING ALL FAILED FIELDS:
-                            if (len(row_fail) != 0):
-                                faildf.loc[len(faildf.index)] = [fieldname, parentname, messagename, fieldlen, fieldval, row_fail.tail(1).get('occurrences').values[0] + 1, iop_fail_desc.rstrip()]
-                            else:
-                                faildf.loc[len(faildf.index)] = [fieldname, parentname, messagename, fieldlen, fieldval, 1, iop_fail_desc.rstrip()]
+                            if len(row_fail) != 0:
+                                idx = row_fail.index[-1]
+                                existing = faildf.at[idx, "fail description"]
 
+                                if iop_fail_desc.rstrip() not in existing:
+                                    faildf.at[idx, "fail description"] = (
+                                        existing + " | " + iop_fail_desc.rstrip()
+                                    )
+
+                                faildf.at[idx, "occurrences"] += 1
+
+                            else:
+                                faildf.loc[len(faildf.index)] = [
+                                    fieldname,
+                                    parentname,
+                                    messagename,
+                                    fieldlen,
+                                    fieldval,
+                                    1,
+                                    iop_fail_desc.rstrip()
+                                ]
+                                
                         # *IF TRACKING ALL ACCESSED FIELDS:
                         # row_assess = assessdf.loc[(assessdf['field'] == fieldname) & (assessdf['parent'] == parentname) & (assessdf['message'] == messagename) & (assessdf['compliant'] == iop_field)]
                         # if (len(row_assess) != 0):
@@ -264,6 +327,7 @@ def analyze(tree):
                         print("Tag:", fieldname, ">", iop_tag)
                         print("Length:", fieldlen, ">", iop_length)
                         print("Value:", fieldval, ">", iop_value)
+                        print("Sequence:", iop_sequence)
                         print("*Field Compliant:", iop_field, "\n")
                 print("**Protocol/Message Interoperable:", iop_proto, "\n")
 
