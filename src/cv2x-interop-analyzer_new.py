@@ -9,7 +9,7 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.max_colwidth', None)
 pd.set_option('display.width', 1000)
 
-from j2735_ref_tables_new import saej2735_bsm_refdf, saej2735_spat_refdf, saej2735_rsa_refdf, saej2735_tim_refdf, saej2735_rsa_refdf, saej2735_map_refdf
+from j2735_ref_tables_new import saej2735_bsm_refdf, saej2735_spat_refdf, saej2735_rsa_refdf, saej2735_tim_refdf, saej2735_map_refdf
 from ieee16093_ref_tables import ieee16093_wsmp_refdf
 from ieee16092_ref_tables import ieee16092_spdu_refdf
 
@@ -69,15 +69,9 @@ def ia5str(row, fieldval, fieldlen):
     minlength = row.get('val1').values[0]
     maxlength = row.get('val2').values[0]
 
-    #print(
-        f"IA5 DEBUG: '{fieldval}' "
-        f"len={fieldlen} "
-        f"allowed={minlength}-{maxlength}"
-    )
-
     if fieldlen < minlength or fieldlen > maxlength:
         return False
-
+    
     try:
         fieldval.encode("ascii")
     except UnicodeEncodeError:
@@ -117,18 +111,50 @@ def normalize_field_name(fieldname):
     # Remove Wireshark version prefixes
     fieldname = fieldname.replace("j2735_2016.", "j2735.")
 
-    # Remove vendor suffixes like _01, _02, _03
+    # Remove ASN.1 suffixes
     fieldname = re.sub(r"_(\d+)$", "", fieldname)
 
+    # Remove structural ASN.1 wrappers
+    ignore_suffixes = ["_element", "_value",]
+
+    for suffix in ignore_suffixes:
+        if fieldname.endswith(suffix):
+            fieldname = fieldname[:-len(suffix)]
+
+    fieldname = apply_alias(fieldname)
     return fieldname
+
+
+def normalize_parent_name(parentname):
+    if parentname is None:
+        return None
+
+    parentname = parentname.replace("j2735_2016.","j2735.")
+
+    parentname = re.sub(r"_(\d+)$","",parentname)
+
+    parentname = apply_alias(parentname)
+    return parentname
+
+def apply_alias(name):
+    # J2735 alias dictionary (for parent and field)
+    aliases = {
+        #standard field name: alias
+        "j2735.revision":"j2735.msgIssueRevision",
+        "j2735.MapData_element":"j2735.MapData",
+    }
+    return aliases.get(name, name)
 
 # ------- ANALYZE PDML METHOD: Given a tree (parsed XML file), will iterate through every field of each relevant message to determine interoperability and compliance to standards. -------
 def analyze(tree):
     global iop_file
     global iop_file_fail_desc
+    iop_file = True
+    iop_file_fail_desc = ""
+    faildf.drop(faildf.index, inplace=True)
 
     # DETERMINE PACKET AND PROTOCOL
-    for packet in tree.getroot():   # recursively move through packets/protocols
+    for packet in tree.getroot():
         iop_packet = True
         for proto in packet.iter('proto'): #CHANGED from proto in packet: to allow for wider compatability
             iop_proto = True
@@ -154,32 +180,49 @@ def analyze(tree):
                             refdf = saej2735_map_refdf
                         case _:
                             iop_file = False
-                            iop_file_fail_desc = iop_file_fail_desc + "Invalid messageId: " + messageId + "\n"
+                            iop_file_fail_desc += ("Invalid messageId: " + str(messageId.attrib.get('show'))+ "\n")
+                            
             elif ("16093" in proto.attrib.get('name')): # IEEE 1609.3
                 messagename = "IEEE 1609.3: WAVE Short Message Protocol"
                 refdf = ieee16093_wsmp_refdf
+                
             elif ("16092" in proto.attrib.get('name')): # IEEE 1609.2
                 messagename = "IEEE 1609.2: WAVE Security Signed Data"
                 refdf = ieee16092_spdu_refdf
+                
             else:
                 continue
 
             if (messagename is not None):
                 print(messagename)
                 print("--------------------------------------------")
+                
 
             # SET MESSAGE REFERENCE TABLE VARIABLES FOR SEQUENCE CHECKING
             if ((refdf is not None) and (not refdf.empty)):
+                # Build the ordered list of mandatory fields from the reference table.
+                # This preserves the standard-defined sequence so incoming PDML fields
+                    # can be checked to ensure mandatory elements appear in the correct order.
                 mandatory_sequence = (
                     refdf[refdf["mandatory"] == True]
                     [["field", "parent"]]
                     .reset_index(drop=True)
                 )
 
-                mand_index = 0
+                sequence_tracker = {}
 
                 # ------- IoP ANALYSIS -------
-                for field in proto.iter('field'):  # iteratively move through fields
+                ignored_fields = [
+                        "j2735.MessageFrame",
+                        "j2735.value",
+                        "j2735.BasicSafetyMessage",
+                        "j2735.MapData",
+                        "j2735.coreData",
+                        "j2735.partII",
+                        "j2735.PartIIcontent",
+                        "j2735.partII_Value",
+                    ]
+                for field in proto.iter('field'):  # iteratively move through fields - CHANGED from proto.iter() to proto.iter('field')
                     iop_tag = True
                     iop_length = True
                     iop_value = True
@@ -188,7 +231,11 @@ def analyze(tree):
                     iop_fail_desc = ""
 
                     fieldname = normalize_field_name(field.attrib.get('name'))
-                    parentname = str(field.getparent().attrib.get("name"))
+                    parentname = parentname = normalize_parent_name(field.getparent().attrib.get("name"))
+
+
+                    if fieldname in ignored_fields:
+                        continue
 
                     if (fieldname == "per.optional_field_bit"): # optional field handler
                         if ("True" in str(field.attrib.get('showname'))):
@@ -197,50 +244,57 @@ def analyze(tree):
                             continue
 
                     row = refdf.loc[(refdf['field'] == fieldname) & (refdf['parent'] == parentname)]    # get row based on field name and parent name
+
                     if row.empty:
-                        #if fieldname.startswith("j2735"):
-                            #print(f"Unknown field: {fieldname} (parent={parentname})")
                         continue
                     
-                    if ((len(row.index) != 1)): # (there should only be 1 entry per unique pair of field name and parent name)
-                        #print("NO MATCH")
-                        #print(" Field :", fieldname)
-                        #print(" Parent:", parentname)
+                    if ((len(row.index) != 1)): # only 1 entry per unique pair of field name and parent name
+                        print("NO MATCH")
+                        print(" Field :", fieldname)
+                        print(" Parent:", parentname)
                         if ((len(row.index) != 0) and not row.empty):
                             iop_tag = False
                             iop_fail_desc = iop_fail_desc + "Invalid/Repeated tag. "
                         # *IF TRACKING SKIPPED FIELDS:
                         # if (row.empty):
                         #     skipdf.loc[len(skipdf.index)] = [fieldname, parentname, messagename]
+                        
                     else:
                         # SEQUENCE CHECKING
                         fieldmand_ref = row.get("mandatory").values[0]
 
-                        if fieldmand_ref and mand_index < len(mandatory_sequence):
-                            expected = mandatory_sequence.iloc[mand_index]
+                        if fieldmand_ref:
+                            key = parentname
+                            if key not in sequence_tracker:
+                                sequence_tracker[key]=0
+                            current_index = sequence_tracker[key]
 
-                            expected_field = expected["field"]
-                            expected_parent = expected["parent"]
+                            parent_sequence = mandatory_sequence[mandatory_sequence["parent"] == parentname].reset_index(drop=True)
 
-                            if (fieldname == expected_field and parentname == expected_parent):
-                                mand_index += 1
-                            else:
-                                iop_sequence = False
-                                iop_fail_desc += (
-                                    f"Sequence incorrect: "
-                                    f"expected {expected_field} "
-                                    f"in {expected_parent}. "
-                                )
-                                #print("\nSEQUENCE ERROR")
-                                #print("Current :", fieldname, parentname)
-                                #print("Expected:", expected_field, expected_parent)
+                            if current_index < len(parent_sequence):
+                                expected = parent_sequence.iloc[current_index]
+                                if(fieldname == expected["field"]):
+                                    sequence_tracker[key] +=1
+                                else:
+                                    matches = parent_sequence[parent_sequence["field"] == fieldname]
+
+                                    if not matches.empty:
+                                        sequence_tracker[key] = (matches.index[0]+1)
+                                    else:
+                                        iop_sequence = False
+                                        iop_fail_desc += (f"Unexpected sequence position: " f"{fieldname} in {parentname}.")
+                        
 
                         # LENGTH EVALUATION OF FIELD
                         fieldlen = int(field.attrib.get('size'), 10)
-                        if ((fieldlen < 1) or (fieldlen > row.get('length').values[0])):
-                            iop_length = False
-                            iop_fail_desc = iop_fail_desc + "Incorrect length: " + str(fieldlen) + " should be " + str(row.get('length').values[0]) + ". "
+                        eval_method = row.get("eval method").values[0]
 
+                        # IA5 and UTF8 strings validate their own lengths
+                        if eval_method not in (5, 6):
+                            if fieldlen < 1 or fieldlen > row.get("length").values[0]:
+                                iop_length = False
+                                iop_fail_desc += (f"Incorrect length: {fieldlen} " f"should be {row.get('length').values[0]}. ")
+                                
                         # CONVERT STRING (FROM DATAFILE) TO INT VALUES
                         try:
                             fieldval = int(field.attrib.get('show'), 10)
@@ -253,7 +307,6 @@ def analyze(tree):
                                 fieldval = None
 
                         # QUANTITATIVE (VALUE) EVALUATION OF FIELD
-                        eval_method = row.get('eval method').values[0]
                         if fieldval is not None:
                             match eval_method:  # determine how the field should be evaluated based on standard
                                 case 0:
@@ -293,7 +346,6 @@ def analyze(tree):
                             iop_packet = False
                             iop_file = False
                             row_fail = faildf.loc[(faildf['field'] == fieldname) & (faildf['parent'] == parentname) & (faildf['message'] == messagename)]
-                            # *IF TRACKING ALL FAILED FIELDS:
                             if len(row_fail) != 0:
                                 idx = row_fail.index[-1]
                                 existing = faildf.at[idx, "fail description"]
