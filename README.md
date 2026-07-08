@@ -132,6 +132,6 @@ Current limitations
 * Reference tables must be updated for future standard revisions
 
 ## References
-*[C-V2X Interoperability Analyzer](https://github.com/usnistgov/C-V2XInteroperabilityAnalyzer)
-*[C-V2X Interoperability Testing Datasets](https://data.nist.gov/od/id/mds2-3541)
-*2026 OmniAir MD Plugfest Datasets
+* [C-V2X Interoperability Analyzer](https://github.com/usnistgov/C-V2XInteroperabilityAnalyzer)
+* [C-V2X Interoperability Testing Datasets](https://data.nist.gov/od/id/mds2-3541)
+* 2026 OmniAir MD Plugfest Datasets
