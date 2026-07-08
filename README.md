@@ -65,8 +65,8 @@ _The validator is designed to be extensible. Additional SAE J2735 message types 
     By default the output is printed to stdout, but can be redirected or piped to a text file using the shell.
 
     ```shell
-    python src/cv2x-interop-analyzer_new.py test_files/example.pdml > output.txt
-    python src/cv2x-interop-analyzer_new.py test_files/example.pdml | tee output.txt
+    python src/cv2x-interop-analyzer_new.py example.pdml > output.txt
+    python src/cv2x-interop-analyzer_new.py example.pdml | tee output.txt
     ```
 
 ## Validation Process
