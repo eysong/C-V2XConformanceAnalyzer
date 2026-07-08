@@ -35,7 +35,7 @@ _The validator is designed to be extensible. Additional SAE J2735 message types 
       and install Python 3.14 from [here](https://www.python.org/downloads/). Make sure to select "Add python.exe
       to PATH" in the Python installer. Open a Git Bash terminal and navigate to the relevant directory.
 
-1. Install [PDM](https://pdm-project.org/). For example, using plain pip:
+2. Install [PDM](https://pdm-project.org/). For example, using plain pip:
 
     ```shell
     pip install -U --user pdm
@@ -43,20 +43,20 @@ _The validator is designed to be extensible. Additional SAE J2735 message types 
 
     Refer to the [PDM documentation](https://pdm-project.org/en/latest/#installation) for more installation options.
 
-1. Clone this repository.
+3. Clone this repository.
 
     ```shell
     git clone [https://github.com/usnistgov/C-V2XInteroperabilityAnalyzer.git](https://github.com/eysong/C-V2XConformanceAnalyzer)
     cd C-V2XConformanceAnalyzer
     ```
 
-1. Install all required Python packages.
+4. Install all required Python packages.
 
     ```shell
     pip install -r requirements.txt
     ```
 
-1. Run the analyzer with the target PDML file name as argument.
+5. Run the analyzer with the target PDML file name as argument.
 
     ```shell
     python src/cv2x-interop-analyzer_new.py example.pdml
