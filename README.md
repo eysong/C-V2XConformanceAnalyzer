@@ -106,9 +106,28 @@ Each supported message type has a reference table defining
 These tables are derived from the SAE J2735 and IEEE 1609 standards. These tables are each stored in individual python modules and imported in the main program (see /src).
 
 ## Vendor Compatibility
+| Vendor | J2735 Messages Tested | Result | 
+|-----------|------------------|----------|
+| Cohda | BSM, MAP, SPaT, TIM | PASS |
+| Commsignia | BSM, MAP | PASS |
+| Denso | BSM | PASS |
+| ITTelComm | BSM | PASS |
+| Kapsch| BSM, MAP | PASS |
+| MioVision | BSM, SPaT | PASS |
+| QualComm | BSM | PASS |
+
+Testing was performed using PDML files generated from multiple vendor implementations. This is not an exhaustive list of compatible vendors and message types, rather a narrow testcase log. Vendor test data is not included in this repository.
 
 ### Vendor Differences
+Vendor interoperability required handling differences in Wireshark PDML output including:
+* alternate protocol prefixes
+* generated ASN.1 suffixes
+* optional field representations
+* field aliases
 
 ## Limitations
+Current limitations
+* Requires Wireshark PDML input
+* Reference tables must be updated for future standard revisions
 
 ## References
