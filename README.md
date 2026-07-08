@@ -46,7 +46,7 @@ _The validator is designed to be extensible. Additional SAE J2735 message types 
 3. Clone this repository.
 
     ```shell
-    git clone [https://github.com/usnistgov/C-V2XInteroperabilityAnalyzer.git](https://github.com/eysong/C-V2XConformanceAnalyzer)
+    git clone https://github.com/eysong/C-V2XConformanceAnalyzer.git
     cd C-V2XConformanceAnalyzer
     ```
 
