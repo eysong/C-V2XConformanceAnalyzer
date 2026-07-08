@@ -56,7 +56,7 @@ _The validator is designed to be extensible. Additional SAE J2735 message types 
     pip install -r requirements.txt
     ```
 
-5. Run the analyzer with the target PDML file name as argument.
+5. Run the analyzer with the target PDML file name as argument. (Place PDML in this directory)
 
     ```shell
     python src/cv2x-interop-analyzer_new.py example.pdml
