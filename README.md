@@ -116,7 +116,8 @@ These tables are derived from the SAE J2735 and IEEE 1609 standards. These table
 | MioVision | BSM, SPaT | PASS |
 | QualComm | BSM | PASS |
 
-Testing was performed using PDML files generated from multiple vendor implementations. This is not an exhaustive list of compatible vendors and message types, rather a narrow testcase log. Vendor test data is not included in this repository.
+Testing was performed using PDML files generated from multiple vendor implementations. This is not an exhaustive list of compatible vendors and message types, rather a narrow testcase log. 
+Vendor test data is not included in this repository.
 
 ### Vendor Differences
 Vendor interoperability required handling differences in Wireshark PDML output including:
