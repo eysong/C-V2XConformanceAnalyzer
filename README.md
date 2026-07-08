@@ -68,3 +68,47 @@ _The validator is designed to be extensible. Additional SAE J2735 message types 
     python src/cv2x-interop-analyzer_new.py example.pdml > output.txt
     python src/cv2x-interop-analyzer_new.py example.pdml | tee output.txt
     ```
+
+## Validation Process
+For every field in every supported protocol, the tool performs:
+1. Field identification
+    * matches each field and parent against the reference table
+
+2. Length validation
+    * verifies encoded length requirements
+
+3. Value validation
+    * numeric ranges
+    * IA5 strings
+    * UTF-8 strings
+    * bit strings
+    * booleans
+    * hash algorithms
+    * signer types
+
+4. Mandatory sequence validation
+    * ensures required fields appear in standard-defined order
+
+5. Reporting
+    * records all failures
+    * counts repeated failures
+    * summarizes protocol and file interoperability
+
+## Reference Tables
+Each supported message type has a reference table defining
+* field name
+* parent field
+* maximum encoded length
+* evaluation method
+* allowable values
+* mandatory status
+
+These tables are derived from the SAE J2735 and IEEE 1609 standards. These tables are each stored in individual python modules and imported in the main program (see /src).
+
+## Vendor Compatibility
+
+### Vendor Differences
+
+## Limitations
+
+## References
