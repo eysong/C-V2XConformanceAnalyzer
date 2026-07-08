@@ -1,7 +1,33 @@
-# C-V2X Conformance Analyzer
-This repository is a software tool to analyze the conformance of C-V2X messages based on testing packet datasets and SAE J2735, IEEE 1609.2 and 1609.3 standards.
+# C-V2X PDML Conformance Analyzer
+This repository is a software tool to analyze the conformance of C-V2X messages based on testing packet datasets and SAE J2735, IEEE 1609.2 and 1609.3 standards. It compares decoded packet fields against reference tables derived from the standards and reports interoperability issues including invalid values, incorrect field lengths, missing or repeated fields, and sequence violations.
 
-## How to Use
+## Supported Standards
+• SAE J2735
+    • Basic Safety Message (BSM)
+    • MAP
+    • SPaT
+    • Roadside Alert (RSA)
+    • Traveler Information Message (TIM)
+
+• IEEE 1609.2
+    • Signed Data
+
+• IEEE 1609.3
+    • WSMP
+
+__The validator is designed to be extensible. Additional SAE J2735 message types can be supported by adding new protocol reference tables and corresponding validation rules.__
+
+### Features
+✓ Tag validation
+✓ Field length validation
+✓ Value validation
+✓ Mandatory field sequence validation
+✓ Optional field handling
+✓ Vendor-independent field normalization
+✓ Detailed interoperability failure reporting
+✓ Packet, protocol, and file level compliance summaries
+
+## Usage
 1. Install git and Python 3.14. The installation procedure varies depending on your operating system.
 
 * On Debian and Ubuntu Linux, run `sudo apt install git python3-pip` in a terminal.
@@ -20,7 +46,7 @@ This repository is a software tool to analyze the conformance of C-V2X messages 
 1. Clone this repository.
 
     ```shell
-    git clone https://github.com/usnistgov/C-V2XInteroperabilityAnalyzer.git
+    git clone [https://github.com/usnistgov/C-V2XInteroperabilityAnalyzer.git](https://github.com/eysong/C-V2XConformanceAnalyzer)
     cd C-V2XConformanceAnalyzer
     ```
 
