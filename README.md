@@ -4,8 +4,8 @@ This repository is a software tool to analyze the conformance of C-V2X messages 
 ## Supported Standards
 * SAE J2735
     * Basic Safety Message (BSM)
-    * MAP
-    * SPaT
+    * Map Data (MAP)
+    * Signal Phase and Timing (SPaT)
     * Roadside Alert (RSA)
     * Traveler Information Message (TIM)
 
