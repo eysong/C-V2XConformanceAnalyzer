@@ -15,7 +15,7 @@ This repository is a software tool to analyze the conformance of C-V2X messages 
 * IEEE 1609.3
     * WSMP
 
-__The validator is designed to be extensible. Additional SAE J2735 message types can be supported by adding new protocol reference tables and corresponding validation rules.__
+_The validator is designed to be extensible. Additional SAE J2735 message types can be supported by adding new protocol reference tables and corresponding validation rules._
 
 ### Features
 * Tag validation
