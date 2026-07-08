@@ -103,7 +103,7 @@ Each supported message type has a reference table defining
 * allowable values
 * mandatory status
 
-These tables are derived from the SAE J2735 and IEEE 1609 standards. These tables are each stored in individual python modules and imported in the main program (see /src).
+These tables are derived from the SAE J2735 and IEEE 1609 standards. These tables are each stored in individual python modules and imported in the main program (see src/).
 
 ## Vendor Compatibility
 | Vendor | J2735 Messages Tested | Result | 
