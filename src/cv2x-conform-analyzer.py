@@ -218,6 +218,7 @@ def analyze(tree):
                 )
 
                 sequence_tracker = {}
+                mandatory_seen = {}
 
                 # ------- IoP ANALYSIS -------
                 ignored_fields = [
@@ -272,7 +273,18 @@ def analyze(tree):
                         fieldmand_ref = row.get("mandatory").values[0]
 
                         if fieldmand_ref:
-                            key = parentname
+                            parent_element = field.getparent()
+
+                            key = id(parent_element)
+
+                            if key not in mandatory_seen:
+                                mandatory_seen[key] = {
+                                    "element": parent_element,
+                                    "fields": []
+                                }
+
+                            mandatory_seen[key]["fields"].append(fieldname)
+                            
                             if key not in sequence_tracker:
                                 sequence_tracker[key]=0
                             current_index = sequence_tracker[key]
@@ -389,6 +401,42 @@ def analyze(tree):
                         print("Value:", fieldval, ">", iop_value)
                         print("Sequence:", iop_sequence)
                         print("*Field Compliant:", iop_field, "\n")
+
+                # CHECK FOR MISSING MANDATORY FIELDS
+                for parent_id, data in mandatory_seen.items():
+
+                    parent_instance = data["element"]
+                    seen = data["fields"]
+
+                    parent_type = normalize_parent_name(
+                        parent_instance.attrib.get("name")
+                    )
+
+                    expected_fields = set(
+                        mandatory_sequence[
+                            mandatory_sequence["parent"] == parent_type
+                        ]["field"]
+                    )
+
+                    seen_fields = set(seen)
+
+                    missing_fields = expected_fields - seen_fields
+
+                    for missing in missing_fields:
+                        iop_proto = False
+                        iop_packet = False
+                        iop_file = False
+
+                        faildf.loc[len(faildf.index)] = [
+                            missing,
+                            parent_type,
+                            messagename,
+                            0,
+                            "MISSING",
+                            1,
+                            "Mandatory field missing."
+                        ]
+                            
                 print("**Protocol/Message Interoperable:", iop_proto, "\n")
 
         if (refdf is not None):
