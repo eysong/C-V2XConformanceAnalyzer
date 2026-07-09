@@ -23,6 +23,7 @@ iop_file_fail_desc = ""
 def compare_min_max(row, fieldval):
     minval = row.get('val1').values[0]
     maxval = row.get('val2').values[0]
+    
     if((minval <= fieldval) and (fieldval <= maxval)):
         return True
     else:
@@ -163,7 +164,14 @@ def analyze(tree):
 
             # DETERMINE PROTOCOL AND MESSAGE TYPE, SET CORRESPONDING REFERENCE DATAFRAME
             if ("j2735" in proto.attrib.get('name')):   # SAE J2735
-                messageId = proto.find(".//field[@name='j2735.messageId']")
+                
+                messageId = None
+                for f in proto.iter("field"):
+                    name = f.attrib.get("name", "")
+                    if name.endswith(".messageId"):
+                        messageId = f
+                        break
+                    
                 if (messageId != None):
                     messagename = "SAE J2735: " + re.findall(r"messageId: (.+)", messageId.attrib.get('showname'))[0]
                     codenum = int(messageId.attrib.get('show'))
