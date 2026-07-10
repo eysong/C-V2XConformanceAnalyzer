@@ -61,6 +61,7 @@ _The validator is designed to be extensible. Additional SAE J2735 message types 
     python src/cv2x-conform-analyzer.py test_files/example.pdml | tee output.txt
     ```
 ## Repository Structure
+```
 src/
     cv2x-conform-analyzer.py
     ieee16092_ref_tables.py
@@ -74,6 +75,7 @@ test_files/
 .gitignore
 README.md
 requirements.txt
+```
 
 ## Validation Process
 For every field in every supported protocol, the tool performs:
