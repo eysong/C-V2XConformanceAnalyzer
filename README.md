@@ -125,6 +125,13 @@ These tables are derived from the SAE J2735 and IEEE 1609 standards. Each suppor
 Testing was performed using PDML files generated from multiple vendor implementations to verify interoperability across different variations. This is not an exhaustive list of compatible vendors and message types, rather a narrow testcase log. 
 Vendor test data is not included in this repository.
 
+### Errors Tested
+So far, the tool has performed as expected when encountering errors:
+* Missing mandatory field​
+* Field value exceeding max​
+* Length mismatch​
+* IEEE 1609.2 invalid hash/signature detected
+
 ### Vendor Differences
 Vendor interoperability required handling differences in Wireshark PDML output including:
 * alternate protocol prefixes
