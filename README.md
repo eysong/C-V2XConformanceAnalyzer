@@ -117,14 +117,14 @@ Each supported message type has a reference table defining
 These tables are derived from the SAE J2735 and IEEE 1609 standards. Each supported protocol holds its own reference table stored in an individual python module and is imported in the main analyzer (see src/).
 
 ## Vendor Compatibility
-| Vendor | J2735 Messages Tested | Result | 
-|-----------|------------------|----------|
-| Cohda | BSM, MAP, SPaT, TIM | PASS |
-| Commsignia | BSM, MAP | PASS |
-| Denso | BSM | PASS |
-| ITTelComm | BSM | PASS |
-| Kapsch| BSM, MAP | PASS |
-| MioVision | BSM, SPaT | PASS |
+| Vendor | J2735 Messages Tested |
+|-----------|------------------|
+| Cohda | BSM, MAP, SPaT, TIM | 
+| Commsignia | BSM, MAP | 
+| Denso | BSM |
+| ITTelComm | BSM |
+| Kapsch| BSM, MAP |
+| MioVision | BSM, SPaT |
 | QualComm | BSM | PASS |
 
 Testing was performed using PDML files generated from multiple vendor implementations to verify interoperability across different variations. This is not an exhaustive list of compatible vendors and message types, rather a narrow testcase log. 
