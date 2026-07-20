@@ -153,6 +153,16 @@ saej2735_spat_ref = [
 ]
 saej2735_spat_refdf = pd.DataFrame(saej2735_spat_ref, columns = ["field", "parent", "length", "eval method", "val1", "val2", "mandatory"])
 
+# =============================================================================
+# RSA (Road Side Alert, messageId 27) — UNVALIDATED
+# -----------------------------------------------------------------------------
+# NOTE: No RSA messages were present in the available multi-vendor test
+# captures, so this table has NOT been validated against real traffic the way
+# BSM/SPAT/MAP/TIM were. Field names, parents, lengths, and ranges are derived
+# from the J2735 standard/prior definitions but remain UNVERIFIED against
+# dissector output. Treat RSA conformance results as provisional until RSA
+# traffic is available for validation.
+# =============================================================================
 saej2735_rsa_ref = [
     ["j2735.msgCnt", "j2735.value_element", 1, 0, 0, 127, True],
     ["j2735.timeStamp", "j2735.value_element", 3, 0, 0, 527040, False],
@@ -198,7 +208,7 @@ saej2735_tim_ref = [
     ["j2735.crc", "j2735.roadSignID_element", 2, 1, 2, 00, False],
     ["j2735.startYear", "j2735.TravelerDataFrame_element", 2, 0, 0, 4095, False],
     ["j2735.startTime", "j2735.TravelerDataFrame_element", 3, 0, 0, 527040, True],
-    ["j2735.durationTime", "j2735.TravelerDataFrame_element", 2, 0, 0, 32000, False], # problem, should be mandatory
+    ["j2735.durationTime", "j2735.TravelerDataFrame_element", 2, 0, 0, 32000, True], 
     ["j2735.priority", "j2735.TravelerDataFrame_element", 1, 0, 0, 7, True],
     ["j2735.sspLocationRights", "j2735.TravelerDataFrame_element", 1, 0, 0, 31, True],
     ["j2735.name", "j2735.GeographicalPath_element", 8, 5, 1, 63, False],
@@ -235,7 +245,8 @@ saej2735_map_ref = [
     ["j2735.name", "j2735.IntersectionGeometry_element", 63, 5, 1, 63, False],
     ["j2735.region", "j2735.id_element", 2, 0, 0, 65535, False],
     ["j2735.id", "j2735.id_element", 2, 0, 0, 65535, False],
-    ["j2735.msgIssueRevision", "j2735.IntersectionGeometry_element", 1, 0, 0, 127, True],    ["j2735.lat", "j2735.refPoint_element", 4, 0, -900000000, 900000001, True],
+    ["j2735.msgIssueRevision", "j2735.IntersectionGeometry_element", 1, 0, 0, 127, True],    
+    ["j2735.lat", "j2735.refPoint_element", 4, 0, -900000000, 900000001, True],
     ["j2735.long", "j2735.refPoint_element", 4, 0, -1799999999, 1800000001, True],
     ["j2735.elevation", "j2735.refPoint_element", 2, 0, -4096, 61439, False],
     ["j2735.laneWidth", "j2735.IntersectionGeometry_element", 2, 0, 0, 32767, False],
