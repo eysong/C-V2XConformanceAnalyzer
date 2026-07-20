@@ -11,17 +11,25 @@ import pandas as pd
 # 7 = signer [00, 00]
 
 ieee16093_wsmp_ref = [  # col[0] = field name, col[1] = parent name, col[2] = length, col[3] = eval method, col[4] = ref value 1, col[5] = ref value 2, col[6] = mandatory?
-    ["16093.version", "16093", 1, 0, 3, 3, True],
-    ["16093.subtype", "16093", 1, 0, 0, 0, True],
-    ["16093.option", "16093", 1, 3, 00, 00, True],
-    ["16093.n_ext", "16093", 1, 0, 0, 5, False],
-    ["16093.channel", "16093", 1, 1, 1, 00, False],
-    ["16093.rate", "16093", 1, 0, 2, 127, False],
-    ["16093.txpower", "16093", 1, 0, -128, 127, False],
-    ["16093.load", "16093", 1, 1, 1, 00, False],
-    ["16093.confidence", "16093", 1, 0, 0, 7, False],
-    ["16093.tpid", "16093", 1, 0, 0, 5, True],
-    ["16093.psid", "16093", 4, 0, 0, 4294967295, True],
-    ["16093.length", "16093", 2, 0, 0, 16383, True],
+    ["wsmp.version", "wsmp", 1, 0, 3, 3, True],
+    ["wsmp.subtype", "", 1, 0, 0, 0, True],
+    ["wsmp.option", "wsmp", 1, 3, 00, 00, True],
+    ["wsmp.n_ext", "wsmp", 1, 0, 0, 5, False],
+    ["wsmp.txpower", "wsmp", 1, 0, -128, 127, False],
+
+    # WAVE IE extension fields: defined by IEEE 1609.3 but NOT individually
+    # decoded by the Wireshark WSMP dissector (bundled in wave_ie TLVs).
+    ["wsmp.channel", "wsmp", 1, 1, 1, 00, False],
+    ["wsmp.rate", "wsmp", 1, 0, 2, 127, False],
+    ["wsmp.load", "wsmp", 1, 1, 1, 00, False],
+    ["wsmp.confidence", "wsmp", 1, 0, 0, 7, False],
+    ###
+
+    ["wsmp.tpid", "wsmp", 1, 0, 0, 5, True],
+    ["wsmp.psid", "wsmp", 4, 0, 0, 4294967295, True],
+    ["wsmp.length", "wsmp", 2, 0, 0, 16383, True],
+    ["wsmp.wave_ie",      "wsmp", 1, 0, 0, 127, False],   
+    ["wsmp.wave_ie_len",  "wsmp", 1, 0, 0, 255, False],   
+    ["wsmp.wave_ie_data", "wsmp", 1, 0, 0, 255, False],   
 ]
 ieee16093_wsmp_refdf = pd.DataFrame(ieee16093_wsmp_ref, columns = ["field", "parent", "length", "eval method", "val1", "val2", "mandatory"])
