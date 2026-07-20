@@ -35,8 +35,8 @@ ieee16092_spdu_ref = [  # col[0]=field, col[1]=parent, col[2]=length, col[3]=eva
     # ===== signature > ecdsaNistP256Signature =====
     ["ieee1609dot2.sSig",          "ieee1609dot2.ecdsaNistP256Signature_element", 32, 1, 32, 00, True],
     ["ieee1609dot2.x_only",        "ieee1609dot2.rSig", 32, 1, 32, 00, False],
-    ["ieee1609dot2.compressed_y_0","ieee1609dot2.rSig", 32, 1, 32, 00, False],
-    ["ieee1609dot2.compressed_y_1","ieee1609dot2.rSig", 32, 1, 32, 00, False],
+    ["ieee1609dot2.compressed_y", "ieee1609dot2.rSig", 32, 1, 32, 00, False],
+    ["ieee1609dot2.compressed_y", "ieee1609dot2.reconstructionValue", 32, 1, 32, 00, False],
 
     # ===== Certificate =====
     ["ieee1609dot2.version", "ieee1609dot2.Certificate_element", 1, 0, 0, 255, True],  
