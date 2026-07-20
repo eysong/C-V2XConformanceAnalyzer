@@ -118,7 +118,7 @@ saej2735_bsm_ref = [    # col[0] = field name, col[1] = parent name, col[2] = le
     ["j2735.second", "j2735.dateTime_element", 2, 0, 0, 65535, False],
     ["j2735.offset", "j2735.dateTime_element", 2, 0, -840, 840, False],
     ["j2735.vertEvent", "j2735.obstacle_element", 1, 2, 5, 00, False],
-    ]
+]
 saej2735_bsm_refdf = pd.DataFrame(saej2735_bsm_ref, columns = ["field", "parent", "length", "eval method", "val1", "val2", "mandatory"])
 
 saej2735_spat_ref = [
