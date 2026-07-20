@@ -13,7 +13,7 @@ import pandas as pd
 ieee16092_spdu_ref = [  # col[0]=field, col[1]=parent, col[2]=length, col[3]=eval method, col[4]=val1, col[5]=val2, col[6]=mandatory
     # ===== Ieee1609Dot2Data (outermost SPDU) =====
     ["ieee1609dot2.protocolVersion", "ieee1609dot2.Ieee1609Dot2Data_element", 1, 0, 0, 255, True], 
-    ["ieee1609dot2.content", "ieee1609dot2.Ieee1609Dot2Data_element", 1, 0, 0, 128, False],
+    ["ieee1609dot2.content", "ieee1609dot2.Ieee1609Dot2Data_element", 1, 0, 0, 128, False], # choice-index range unverified
     ["ieee1609dot2.unsecuredData",   "ieee1609dot2.content", 662, 1, 662, 00, False],  
 
     # ===== SignedData =====
@@ -30,7 +30,7 @@ ieee16092_spdu_ref = [  # col[0]=field, col[1]=parent, col[2]=length, col[3]=eva
     # ----- headerInfo > generationLocation (ThreeDLocation) -----
     ["ieee1609dot2.latitude",  "ieee1609dot2.generationLocation_element", 4, 0, -900000000,  900000001,  False],
     ["ieee1609dot2.longitude", "ieee1609dot2.generationLocation_element", 4, 0, -1799999999, 1800000001, False],
-    ["ieee1609dot2.elevation", "ieee1609dot2.generationLocation_element", 2, 0, 0, 61439, False],
+    ["ieee1609dot2.elevation", "ieee1609dot2.generationLocation_element", 2, 0, 0, 61439, False], # range unverified vs spec
 
     # ===== signature > ecdsaNistP256Signature =====
     ["ieee1609dot2.sSig",          "ieee1609dot2.ecdsaNistP256Signature_element", 32, 1, 32, 00, True],
@@ -47,7 +47,7 @@ ieee16092_spdu_ref = [  # col[0]=field, col[1]=parent, col[2]=length, col[3]=eva
 
     # ----- toBeSigned (ToBeSignedCertificate) -----
     ["ieee1609dot2.cracaId",             "ieee1609dot2.toBeSigned_element", 3, 1, 3, 00, True],   
-    ["ieee1609dot2.crlSeries",           "ieee1609dot2.toBeSigned_element", 2, 0, 0, 65535, True],
+    ["ieee1609dot2.crlSeries",           "ieee1609dot2.toBeSigned_element", 2, 0, 0, 65535, True], # range unverified vs spec
 
     # ----- certificateId (CHOICE) -----
     ["ieee1609dot2.name",     "ieee1609dot2.certificateId", 7, 6, 1, 63, False],   
@@ -55,19 +55,19 @@ ieee16092_spdu_ref = [  # col[0]=field, col[1]=parent, col[2]=length, col[3]=eva
     ["ieee1609dot2.none",     "ieee1609dot2.certificateId", 1, 3, 00, 00, False],  
 
     # ----- certificateId > linkageData -----
-    ["ieee1609dot2.iCert",         "ieee1609dot2.linkageData_element", 2, 0, 0, 65535, False],  
+    ["ieee1609dot2.iCert",         "ieee1609dot2.linkageData_element", 2, 0, 0, 65535, False],  # IValue range unverified vs spec
     ["ieee1609dot2.linkage_value", "ieee1609dot2.linkageData_element", 9, 1, 9, 00, False],    
     ["ieee1609dot2.jValue",        "ieee1609dot2.group_linkage_value_element", 4, 1, 4, 00, False],  
     ["ieee1609dot2.value",         "ieee1609dot2.group_linkage_value_element", 9, 1, 9, 00, False],  
 
     # ----- validityPeriod -----
     ["ieee1609dot2.start",    "ieee1609dot2.validityPeriod_element", 4, 1, 4, 00, True],   
-    ["ieee1609dot2.hours",    "ieee1609dot2.duration", 2, 0, 0, 65535, False],
-    ["ieee1609dot2.minutes",  "ieee1609dot2.duration", 2, 0, 0, 65535, False],
-    ["ieee1609dot2.years",    "ieee1609dot2.duration", 2, 0, 0, 65535, False],
+    ["ieee1609dot2.hours",    "ieee1609dot2.duration", 2, 0, 0, 65535, False], # Duration range unverified vs spec
+    ["ieee1609dot2.minutes",  "ieee1609dot2.duration", 2, 0, 0, 65535, False], # Duration range unverified vs spec
+    ["ieee1609dot2.years",    "ieee1609dot2.duration", 2, 0, 0, 65535, False], # Duration range unverified vs spec
 
     # ----- region -----
-    ["ieee1609dot2.countryOnly", "ieee1609dot2.IdentifiedRegion", 2, 0, 0, 65535, False],  
+    ["ieee1609dot2.countryOnly", "ieee1609dot2.IdentifiedRegion", 2, 0, 0, 65535, False],  # CountryOnly range unverified vs spec
 
     # ----- appPermissions > PsidSsp -----
     ["ieee1609dot2.psPsid", "ieee1609dot2.PsidSsp_element", 4, 0, 0, 4294967295, False],  
