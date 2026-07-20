@@ -9,6 +9,7 @@ import pandas as pd
 # 5 = IA5 string [minlen, maxlen]
 # 6 = UTF8 string [minlen, maxlen]
 # 7 = signer [00, 00]
+# 8 = sequence-of item count [minitems, maxitems]
 
 saej2735_bsm_ref = [    # col[0] = field name, col[1] = parent name, col[2] = length, col[3] = eval method, col[4] = ref value 1, col[5] = ref value 2, col[6] = mandatory?
     ["j2735.msgCnt", "j2735.coreData_element", 1, 0, 0, 127, True],  # start of coreData (mandatory)
