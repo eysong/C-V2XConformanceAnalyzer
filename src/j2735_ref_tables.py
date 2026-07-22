@@ -38,7 +38,7 @@ saej2735_bsm_ref = [    # col[0] = field name, col[1] = parent name, col[2] = le
     ["j2735.width", "j2735.size_element", 2, 0, 0, 1023, True],
     ["j2735.length", "j2735.size_element", 2, 0, 0, 4095, True],
     ["j2735.partII_Id", "j2735.PartIIcontent_element", 1, 0, 0, 63, False],  # start of partII (optional)
-    ["j2735.events",         "j2735.VehicleSafetyExtensions_element",     2, 2, 13, 00, False],
+    ["j2735.events", "j2735.VehicleSafetyExtensions_element", 2, 2, 13, 00, False],
     ["j2735.year", "j2735.utcTime_element", 2, 0, 0, 4095, False],
     ["j2735.month", "j2735.utcTime_element", 1, 0, 0, 12, False],
     ["j2735.day", "j2735.utcTime_element", 1, 0, 0, 31, False],
@@ -66,9 +66,10 @@ saej2735_bsm_ref = [    # col[0] = field name, col[1] = parent name, col[2] = le
     ["j2735.elevationOffset", "j2735.PathHistoryPoint_element", 2, 0, -2048, 2047, False],
     ["j2735.timeOffset", "j2735.PathHistoryPoint_element", 2, 0, 1, 65535, False],
     ["j2735.heading", "j2735.PathHistoryPoint_element", 1, 0, 0, 240, False],
+    ["j2735.currGNSSstatus", "j2735.pathHistory_element", 8, 2, 8, 00, False],
     ["j2735.radiusOfCurve", "j2735.pathPrediction_element", 2, 0, -32767, 32767, False],
     ["j2735.confidence", "j2735.pathPrediction_element", 1, 0, 0, 200, False],
-    ["j2735.lights",         "j2735.SpecialVehicleExtensions_element",    2, 3, 9,  00, False],
+    ["j2735.lights", "j2735.SpecialVehicleExtensions_element", 2, 3, 9,  00, False],
     ["j2735.sspRights", "j2735.vehicleAlerts_element", 1, 0, 0, 31, False],
     ["j2735.sirenUse", "j2735.vehicleAlerts_element", 1, 0, 0, 3, False],
     ["j2735.lightsUse", "j2735.vehicleAlerts_element", 1, 0, 0, 63, False],
@@ -84,7 +85,8 @@ saej2735_bsm_ref = [    # col[0] = field name, col[1] = parent name, col[2] = le
     ["j2735.pivotOffset", "j2735.connection_element", 1, 0, -1024, 1023, False],
     ["j2735.pivotAngle", "j2735.connection_element", 2, 0, 0, 28800, False],
     ["j2735.pivots", "j2735.connection_element", 1, 3, 0, 00, False],
-    ["j2735.classification", "j2735.SupplementalVehicleExtensions_element", 1, 0, 0, 255, False],    ["j2735.keyType", "j2735.classDetails_element", 1, 0, 0, 255, False],
+    ["j2735.classification", "j2735.SupplementalVehicleExtensions_element", 1, 0, 0, 255, False],    
+    ["j2735.keyType", "j2735.classDetails_element", 1, 0, 0, 255, False],
     ["j2735.role", "j2735.classDetails_element", 1, 0, 0, 22, False],
     ["j2735.iso3883", "j2735.classDetails_element", 1, 0, 0, 100, False],
     ["j2735.hpmsType", "j2735.classDetails_element", 1, 0, 0, 15, False],
@@ -118,17 +120,17 @@ saej2735_bsm_ref = [    # col[0] = field name, col[1] = parent name, col[2] = le
     ["j2735.second", "j2735.dateTime_element", 2, 0, 0, 65535, False],
     ["j2735.offset", "j2735.dateTime_element", 2, 0, -840, 840, False],
     ["j2735.vertEvent", "j2735.obstacle_element", 1, 2, 5, 00, False],
-]
+    ]
 saej2735_bsm_refdf = pd.DataFrame(saej2735_bsm_ref, columns = ["field", "parent", "length", "eval method", "val1", "val2", "mandatory"])
 
 saej2735_spat_ref = [
-    ["j2735.timeStamp", "j2735.SPAT_element", 2, 0, 0, 527040, False],
+    ["j2735.timeStamp", "j2735.SPAT_element", 3, 0, 0, 527040, False],
     ["j2735.name", "j2735.value_element", 1, 5, 1, 63, False],
     ["j2735.region", "j2735.id_element", 2, 0, 0, 65535, False],
     ["j2735.id", "j2735.id_element", 2, 0, 0, 65535, True],
     ["j2735.msgIssueRevision", "j2735.IntersectionState_element", 1, 0, 0, 127, True],
     ["j2735.status", "j2735.IntersectionState_element", 2, 2, 16, 00, True],
-    ["j2735.moy", "j2735.IntersectionState_element", 2, 0, 0, 527040, False],
+    ["j2735.moy", "j2735.IntersectionState_element", 3, 0, 0, 527040, False],
     ["j2735.timeStamp", "j2735.IntersectionState_element", 2, 0, 0, 65535, False],
     ["j2735.laneID", "j2735.IntersectionState_element", 2, 0, 0, 255, False],
     ["j2735.movementName", "j2735.MovementState_element", 1, 5, 1, 63, False],
@@ -142,9 +144,9 @@ saej2735_spat_ref = [
     ["j2735.confidence", "j2735.timing_element", 2, 0, 0, 15, False],
     ["j2735.nextTime", "j2735.timing_element", 2, 0, 0, 36001, False],
     ["j2735.type", "j2735.AdvisorySpeed_element", 1, 0, 0, 3, False],
-    ["j2735.speed", "j2735.AdvisorySpeed_element", 2, 0, 0, 500, False], # double length problem
+    ["j2735.speed", "j2735.AdvisorySpeed_element", 2, 0, 0, 500, False],
     ["j2735.confidence", "j2735.AdvisorySpeed_element", 2, 0, 0, 7, False],
-    ["j2735.distance", "j2735.AdvisorySpeed_element", 2, 0, 0, 10000, False], # double length problem
+    ["j2735.distance", "j2735.AdvisorySpeed_element", 2, 0, 0, 10000, False],
     ["j2735.class", "j2735.AdvisorySpeed_element", 2, 0, 0, 255, False],
     ["j2735.connectionID", "j2735.ConnectionManeuverAssist_element", 2, 0, 0, 10000, False],
     ["j2735.queueLength", "j2735.ConnectionManeuverAssist_element", 2, 0, 0, 10000, False],
@@ -161,20 +163,19 @@ saej2735_spat_refdf = pd.DataFrame(saej2735_spat_ref, columns = ["field", "paren
 # captures, so this table has NOT been validated against real traffic the way
 # BSM/SPAT/MAP/TIM were. Field names, parents, lengths, and ranges are derived
 # from the J2735 standard/prior definitions but remain UNVERIFIED against
-# dissector output. Treat RSA conformance results as provisional until RSA
-# traffic is available for validation.
+# dissector output. Treat RSA conformance results as provisional.
 # =============================================================================
 saej2735_rsa_ref = [
     ["j2735.msgCnt", "j2735.value_element", 1, 0, 0, 127, True],
     ["j2735.timeStamp", "j2735.value_element", 3, 0, 0, 527040, False],
     ["j2735.typeEvent", "j2735.value_element", 2, 0, 0, 65535, True],
-    ["j2735.ITIScodes", "", 2, 0, 0, 65535, False],
+    ["j2735.ITIScodes", "j2735.value_element", 2, 0, 0, 65535, False],
     ["j2735.priority", "j2735.value_element", 1, 1, 1, 00, False],
     ["j2735.extent", "j2735.value_element", 1, 0, 0, 15, False],
-    ["j2735.year", "j2735.utcTime", 2, 0, 0, 4095, False],
-    ["j2735.month", "j2735.utcTime", 1, 0, 0, 12, False],
-    ["j2735.day", "j2735.utcTime", 1, 0, 0, 31, False],
-    ["j2735.hour", "j2735.utcTime", 1, 0, 0, 31, False],
+    ["j2735.year", "j2735.utcTime_element", 2, 0, 0, 4095, False],
+    ["j2735.month", "j2735.utcTime_element", 1, 0, 0, 12, False],
+    ["j2735.day", "j2735.utcTime_element", 1, 0, 0, 31, False],
+    ["j2735.hour", "j2735.utcTime_element", 1, 0, 0, 31, False],
     ["j2735.long", "j2735.position_element", 4, 0, -1799999999, 1800000001, False],
     ["j2735.lat", "j2735.position_element", 4, 0, -900000000, 900000001, False],
     ["j2735.elevation", "j2735.position_element", 2, 0, -4096, 61439, False],
@@ -211,7 +212,7 @@ saej2735_tim_ref = [
     ["j2735.startTime", "j2735.TravelerDataFrame_element", 3, 0, 0, 527040, True],
     ["j2735.durationTime", "j2735.TravelerDataFrame_element", 2, 0, 0, 32000, True], 
     ["j2735.priority", "j2735.TravelerDataFrame_element", 1, 0, 0, 7, True],
-    ["j2735.sspLocationRights", "j2735.TravelerDataFrame_element", 1, 0, 0, 31, True],
+    ["j2735.sspLocationRights", "j2735.TravelerDataFrame_element", 1, 0, 0, 31, False],
     ["j2735.name", "j2735.GeographicalPath_element", 8, 5, 1, 63, False],
     ["j2735.region", "j2735.id_element", 2, 0, 0, 65535, False],
     ["j2735.id", "j2735.id_element", 2, 0, 0, 65535, False],
@@ -230,8 +231,8 @@ saej2735_tim_ref = [
     ["j2735.SegmentAttributeXY", "j2735.enabled", 2, 0, 0, 37, False],
     ["j2735.dWidth", "j2735.attributes_element", 2, 0, -512, 511, False],
     ["j2735.dElevation", "j2735.attributes_element", 2, 0, -512, 511, False],
-    ["j2735.sspMsgRights1", "j2735.TravelerDataFrame_element", 1, 0, 0, 31, True],
-    ["j2735.sspMsgRights2", "j2735.TravelerDataFrame_element", 1, 0, 0, 31, True],
+    ["j2735.sspMsgRights1", "j2735.TravelerDataFrame_element", 1, 0, 0, 31, False],
+    ["j2735.sspMsgRights2", "j2735.TravelerDataFrame_element", 1, 0, 0, 31, False],
     ["j2735.itis", "j2735.item", 2, 0, 1, 65535, False],
     ["j2735.text", "j2735.item", 5, 5, 1, 500, False],
     ["j2735.url", "j2735.TravelerDataFrame_element", 9, 5, 1, 15, False],
