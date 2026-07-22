@@ -9,6 +9,7 @@ import pandas as pd
 # 5 = IA5 string [minlen, maxlen]
 # 6 = UTF8 string [minlen, maxlen]
 # 7 = signer [00, 00]
+# 8 = sequence-of item count [minitems, maxitems]
 
 ieee16092_spdu_ref = [  # col[0]=field, col[1]=parent, col[2]=length, col[3]=eval method, col[4]=val1, col[5]=val2, col[6]=mandatory
     # Ieee1609Dot2Data
