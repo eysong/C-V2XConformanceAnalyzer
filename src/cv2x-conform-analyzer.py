@@ -1,17 +1,15 @@
 import argparse
+import os
 import re
 import sys
 import time
 from dataclasses import dataclass, field as dc_field
 from enum import Enum
-from typing import Optional, Any, List
+import typing
 from lxml import etree
-from dataclasses import dataclass
-import pandas as pd
-from collections import defaultdict
+from collections import defaultdict, Counter
 
-from j2735_ref_tables import (saej2735_bsm_refdf, saej2735_spat_refdf, saej2735_rsa_refdf,
-    saej2735_tim_refdf, saej2735_map_refdf,)
+from j2735_ref_tables import (saej2735_bsm_refdf, saej2735_spat_refdf, saej2735_rsa_refdf, saej2735_tim_refdf, saej2735_map_refdf)
 from ieee16092_ref_tables import ieee16092_spdu_refdf
 from ieee16093_ref_tables import ieee16093_wsmp_refdf
 
@@ -43,7 +41,7 @@ J2735_ALIASES = {
 
 IEEE16092_CANON = "ieee1609dot2."
 IEEE16092_PREFIXES = ("ieee1609dot2.", "sec.", "its.sec.", "16092.")
-IEEE16092_ALIASES = {}
+IEEE16092_ALIASES = {} #FOR future use (??)
 
 WSMP_ALIASES = {
     "wsmp.version_v3": "wsmp.version",
@@ -53,13 +51,12 @@ WSMP_ALIASES = {
     "wsmp.subtype_vX": "wsmp.subtype"
 }
 
-# WSMP WAVE IE fields - not value-validatable, skip evaluation.
+# WSMP WAVE IE fields - skip evaluation
 WSMP_WAVE_IE_IGNORE = {
     "wsmp.wave_ie",
     "wsmp.wave_ie_data",
     "wsmp.wave_ie_len",
 }
-
 
 J2735_TABLES = {
     "BSM": saej2735_bsm_refdf,
@@ -68,25 +65,29 @@ J2735_TABLES = {
     "TIM": saej2735_tim_refdf,
     "RSA": saej2735_rsa_refdf,
 }
+IEEE16092_TABLE = ieee16092_spdu_refdf
+WSMP_TABLE = ieee16093_wsmp_refdf
 
-# UNVERIFIED FIELDS - 1609.2 bounded-integer ranges inferred without the ASN.1
-UNVERIFIED_FIELDS = {
-    ("ieee1609dot2.generationLocation_element", "ieee1609dot2.elevation"),
-    ("ieee1609dot2.Ieee1609Dot2Data_element", "ieee1609dot2.content"),
-    ("ieee1609dot2.toBeSigned_element", "ieee1609dot2.crlSeries"),
-    ("ieee1609dot2.linkageData_element", "ieee1609dot2.iCert"),
-    ("ieee1609dot2.IdentifiedRegion", "ieee1609dot2.countryOnly"),
-    ("ieee1609dot2.duration", "ieee1609dot2.hours"),
-    ("ieee1609dot2.duration", "ieee1609dot2.minutes"),
-    ("ieee1609dot2.duration", "ieee1609dot2.years"),
-}
+# UNVERIFIED FIELDS - 1609.2 bounded-integer ranges inferred without ASN.1
+UNVERIFIED_FIELDS = { #currently none - 1609.2 ranges have been spot-verified with ASN.1 }
 
-# RSA is unvalidated (no RSA traffic in test data)
+# RSA is unvalidated 
 UNVERIFIED_MESSAGE_TYPES = {"RSA"}
 
-# Fields that are ASN.1 NULL — presence alone is valid, no value to check
-NULL_FIELDS = {
-    ("ieee1609dot2.certificateId", "ieee1609dot2.none"),
+# Fields that are ASN.1 NULL — presence alone is valid
+NULL_FIELDS = {("ieee1609dot2.certificateId", "ieee1609dot2.none")}
+
+#for logging
+EVAL_METHOD_NAMES = {
+    0: "min/max",
+    1: "octet count",
+    2: "bit string",
+    3: "boolean",
+    4: "hashalg",
+    5: "IA5 string",
+    6: "UTF8 string",
+    7: "signer",
+    8: "seq count",
 }
 
 # VERDICTS
@@ -116,9 +117,7 @@ def _strip_ignore_suffixes(name):
     return name
 
 def normalize(name, standard, is_parent=False):
-    #Normalize a field or parent name according to its standard
-    #is_parent: parents KEEP _element 
-    #           fields have _element stripped.
+    #Normalize a field or parent name according to its standard: parents KEEP _element. fields have _element stripped.
     
     if name is None:
         return None
@@ -137,16 +136,15 @@ def normalize(name, standard, is_parent=False):
         if not is_parent:
             name = _strip_ignore_suffixes(name)
         return IEEE16092_ALIASES.get(name, name)
-    if standard == Standard.IEEE16093:
+    if standard == Standard.IEEE16093:         # WSMP is flat
         name = name.replace("ieee1609dot3.", "wsmp.")
         name = _strip_instance_suffix(name)
-        # WSMP is flat
         return WSMP_ALIASES.get(name, name)
     return name
 
 # FIELD CLASSIFICATION 
 class Category(Enum):
-    DATA = "data"            # a real leaf to validate
+    DATA = "data"
     CONTAINER = "container"  # structural node (skip)
     BITSTRING = "bitstring"  # expanded bit of a bitstring parent (skip)
     ENCODING = "encoding"    # framing artifact (skip)
@@ -171,9 +169,9 @@ BITSTRING_PARENT_NAMES = {
 CHOICE_VALIDATE = {
     "ieee1609dot2.signer",   # method 7
 }
+
 RESERVED_RE = re.compile(r"\.(?:doNotUse|reserved)\d*$", re.IGNORECASE)
 ENCODING_PREFIXES = ("per.", "oer.", "ber.")
-# wrappers to ignore per standard
 ALWAYS_IGNORE = {
     "j2735.MessageFrame", "j2735.value", "j2735.messageId",
     "ieee1609dot2.messageId",
@@ -186,8 +184,7 @@ def children_are_all_bits(field_el):
     children = field_el.findall("field")
     if not children:
         return False
-    return all(BITSTRING_BIT_RE.search(c.attrib.get("name", "") or "")
-               for c in children)
+    return all(BITSTRING_BIT_RE.search(c.attrib.get("name", "") or "") for c in children)
 
 def classify(fieldname, field_el, standard):
     #classify a normalized fieldname into DATA, CONTAINER, BITSTRING, ENCODING, RESERVED
@@ -220,14 +217,13 @@ def classify(fieldname, field_el, standard):
 class FieldRecord:
     standard: Standard
     raw_name: str
-    canonical_name: Optional[str]
-    canonical_parent: Optional[str]
-    size: Optional[int]
-    show: Optional[str]
-    showname: Optional[str]
+    canonical_name: typing.Optional[str]
+    canonical_parent: typing.Optional[str]
+    size: typing.Optional[int]
+    show: typing.Optional[str]
+    showname: typing.Optional[str]
     category: Category
-    element: Any = dc_field(repr=False, default=None)
-
+    element: typing.Any = dc_field(repr=False, default=None)
 
 def _size(field_el):
     s = field_el.attrib.get("size")
@@ -285,8 +281,7 @@ def discover_packet(packet):
         elif pname == "j2735":
             msg_id = extract_message_id(proto)
             label = J2735_MESSAGE_IDS.get(msg_id)
-            records = [make_record(f, Standard.J2735)
-                       for f in proto.iter("field")]
+            records = [make_record(f, Standard.J2735) for f in proto.iter("field")]
             result["j2735"] = (label, msg_id, records)
     return result
 
@@ -297,13 +292,14 @@ class EvalResult:
     parent: str
     field: str
     verdict: Verdict = Verdict.PASS  
-    length: Optional[int] = None
-    value: Optional[object] = None
+    length: typing.Optional[int] = None
+    value: typing.Optional[object] = None
     tag_ok: bool = True
     length_ok: bool = True
     value_ok: bool = True
     unverified: bool = False
     notes: str = ""
+    eval_method: typing.Optional[int] = None
 
 # EVALUATION METHODS 
 def eval_min_max(val, v1, v2):
@@ -317,7 +313,7 @@ def eval_bit_string(showname, target_bitlen):
     if not m:
         return False, "Incorrect format for bit string."
     field_bitlen = int(m[0])
-    # Account for pad bits (?)
+    # Account for pad bits (??)
     pad = re.findall(r"(\d+) LSB pad bits", showname or "")
     if pad:
         field_bitlen -= int(pad[0])
@@ -342,7 +338,7 @@ def eval_ia5(fieldval, fieldlen, minlen, maxlen):
     return True
 
 def eval_utf8(fieldval, fieldlen, minlen, maxlen):
-    if not (minlen == 0 and maxlen == 0):  # 0,0 = no length restriction
+    if not (minlen == 0 and maxlen == 0):  # 0,0 means no length restriction
         if fieldlen < minlen or fieldlen > maxlen:
             return False
     try:
@@ -393,16 +389,14 @@ def _parse_value(element):
     return None
 
 def evaluate_field(record, rule, msg_type=None):
-    #Evaluate one matched DATA field against its rule.
-    #Returns an EvalResult.
-    
+    #Evaluate one matched DATA field against its rule, Returns an EvalResult.
     parent = record.canonical_parent
     fieldname = record.canonical_name
     method = int(rule["eval method"])
     tlen_ref = int(rule["length"])
     v1 = rule["val1"]
     v2 = rule["val2"]
-    res = EvalResult(parent=parent, field=fieldname, length=record.size, value=None)
+    res = EvalResult(parent=parent, field=fieldname, length=record.size, value=None, eval_method=method)
     
     # ASN.1 NULL fields - presence is sufficient
     if (parent, fieldname) in NULL_FIELDS:
@@ -418,7 +412,6 @@ def evaluate_field(record, rule, msg_type=None):
     # LENGTH check
     if method not in (4, 5, 6, 7, 8):
         flen = record.size if record.size is not None else -1
-
         if flen < 1 or flen > tlen_ref:
             res.length_ok = False
             res.notes += f"Incorrect length: {flen} (expected 1..{tlen_ref}). "
@@ -467,7 +460,6 @@ def evaluate_field(record, rule, msg_type=None):
         res.value_ok = False
         res.notes += f"Evaluation error: {e}. "
 
-
     # Final verdict !!
     if not res.value_ok:
         res.notes += "Value out of range/invalid. "
@@ -482,17 +474,12 @@ def _extract_string(showname):
     m = re.findall(r": (.+)$", showname or "")
     return m[0] if m else ""
 
-
 def summarize_records(records):
     #Count records by category
     counts = {}
     for r in records:
         counts[r.category] = counts.get(r.category, 0) + 1
     return counts
-
-
-IEEE16092_TABLE = ieee16092_spdu_refdf
-WSMP_TABLE = ieee16093_wsmp_refdf
 
 
 class FailLog:
@@ -521,6 +508,7 @@ class FailLog:
                 "occurrences": 1,
                 "notes": result.notes.strip(),
                 "unverified": result.unverified,
+                "eval_method": result.eval_method
             }
 
     def is_empty(self):
@@ -538,22 +526,17 @@ class SkipLog:
         self.rows[(standard, category, parent, field)] += 1
 
     def as_list(self):
-        return [
-            {"standard": s, "category": c, "parent": p, "field": f, "occurrences": n}
-            for (s, c, p, f), n in sorted(self.rows.items())
-        ]
+        return [{"standard": s, "category": c, "parent": p, "field": f, "occurrences": n} for (s, c, p, f), n in sorted(self.rows.items())]
 
 
-def evaluate_records(records, lookup, standard_label, message_label, faillog, skiplog, provisional=False):
-    #Evaluate a list of FieldRecords against a reference lookup dict.
-    #   Returns True if all evaluated fields passed (this layer conformant).
+def evaluate_records(records, lookup, standard_label, message_label, faillog, skiplog, provisional=False, collect_detail=False):
+    #Evaluate a list of FieldRecords against a reference lookup dict. Returns True if all evaluated fields passed (this layer conformant).
     
     layer_ok = True
+    detail = []
     for r in records:
-        # Non-DATA fields -> skip log
         if r.category != Category.DATA:
-            skiplog.add(standard_label, r.category.value,
-                        r.canonical_parent, r.canonical_name)
+            skiplog.add(standard_label, r.category.value, r.canonical_parent, r.canonical_name)
             continue
 
         status, rule = resolve_rule_fast(lookup, r.canonical_parent, r.canonical_name)
@@ -565,19 +548,20 @@ def evaluate_records(records, lookup, standard_label, message_label, faillog, sk
             if result.verdict != Verdict.PASS:
                 layer_ok = False
                 faillog.add(standard_label, message_label, result)
+            if collect_detail:
+                detail.append(result)
 
         elif status == "UNMAPPED":
             skiplog.add(standard_label, "unmapped", r.canonical_parent, r.canonical_name)
 
-        else:  # AMBIGUOUS?
+        else:  # AMBIGUOUS
             layer_ok = False
-            amb = EvalResult(parent=r.canonical_parent,
-                             field=r.canonical_name,
-                             verdict=Verdict.AMBIGUOUS,
-                             notes="Ambiguous: matched multiple table rules.")
+            amb = EvalResult(parent=r.canonical_parent, field=r.canonical_name, verdict=Verdict.AMBIGUOUS, notes="Ambiguous: matched multiple table rules.")
             faillog.add(standard_label, message_label, amb)
+            if collect_detail:
+                detail.append(amb)
 
-    return layer_ok
+    return layer_ok, detail
 
 
 # Pre-build fast lookup dicts once
@@ -608,7 +592,7 @@ for lbl, df in J2735_TABLES.items():
     MANDATORY_SPECS[f"SAE J2735::{lbl}"] = build_mandatory_spec_cached(df)
 
 #####
-def analyze_file(pdml_path, verbose=False):
+def analyze_file(pdml_path, detail_file=None):
     tree = etree.parse(pdml_path)
     faillog = FailLog()
     skiplog = SkipLog()
@@ -618,57 +602,76 @@ def analyze_file(pdml_path, verbose=False):
     j2735_msgs_seen = set()
     rsa_seen = False
 
+    detail_f = detail_file
+    collect = detail_f is not None
+
+    def write_msg_detail(msg_label, detail_list, msg_ok):
+        if not detail_f:
+            return
+        detail_f.write(f"--- {msg_label} ---\n")
+        for res in detail_list:
+            detail_f.write(f"  Field: {res.field}\n")
+            detail_f.write(f"    Tag:    {res.tag_ok}\n")
+            detail_f.write(f"    Length: {res.length}  > {res.length_ok}\n")
+            detail_f.write(f"    Value:  {res.value} > {res.value_ok}\n")
+            prov = " [PROVISIONAL]" if res.unverified else ""
+            detail_f.write(f"    Compliant: " f"{res.verdict == Verdict.PASS}{prov}\n")
+        detail_f.write(f"  ** Message Compliant: {msg_ok}\n\n")
+
     for packet in tree.getroot():
         if packet.tag != "packet":
             continue
         packet_count += 1
         layers = discover_packet(packet)
+        packet_ok = True
 
-        # --- WSMP (IEEE 1609.3) ---
+        if detail_f:
+            detail_f.write(f"\n{'='*16} PACKET {packet_count} {'='*16}\n")
+
+        # WSMP
         if layers["wsmp"]:
             layer_seen["wsmp"] = True
-            ok = evaluate_records(layers["wsmp"],
-                                  LOOKUPS["IEEE 1609.3::WSMP"],
-                                  "IEEE 1609.3", "WSMP", faillog, skiplog)
-            sok = check_structure(layers["wsmp"], WSMP_TABLE,
-                                  "IEEE 1609.3", "WSMP", faillog, flat=True)
-            file_ok = file_ok and ok and sok
+            ok, det = evaluate_records(layers["wsmp"], LOOKUPS["IEEE 1609.3::WSMP"], "IEEE 1609.3", "WSMP", faillog, skiplog, collect_detail=collect)
+            sok = check_structure(layers["wsmp"], WSMP_TABLE, "IEEE 1609.3", "WSMP", faillog, flat=True)
+            msg_ok = ok and sok
+            write_msg_detail("IEEE 1609.3 : WSMP", det, msg_ok)
+            packet_ok = packet_ok and msg_ok
 
-        # --- IEEE 1609.2 ---
+        # 1609.2
         if layers["16092"]:
             layer_seen["16092"] = True
-            ok = evaluate_records(layers["16092"],
-                                  LOOKUPS["IEEE 1609.2::SPDU"],
-                                  "IEEE 1609.2", "SPDU", faillog, skiplog)
-            sok = check_structure(layers["16092"], IEEE16092_TABLE,
-                                  "IEEE 1609.2", "SPDU", faillog)
-            file_ok = file_ok and ok and sok
+            ok, det = evaluate_records(layers["16092"], LOOKUPS["IEEE 1609.2::SPDU"], "IEEE 1609.2", "SPDU", faillog, skiplog, collect_detail=collect)
+            sok = check_structure(layers["16092"], IEEE16092_TABLE, "IEEE 1609.2", "SPDU", faillog)
+            msg_ok = ok and sok
+            write_msg_detail("IEEE 1609.2 : SPDU", det, msg_ok)
+            packet_ok = packet_ok and msg_ok
 
-        # --- SAE J2735 ---
+        # J2735
         if layers["j2735"] is not None:
             layer_seen["j2735"] = True
             label, msg_id, records = layers["j2735"]
             if label is None:
-                skiplog.add("SAE J2735", "unknown_message",
-                            f"messageId={msg_id}", "")
-                continue
-            j2735_msgs_seen.add(label)
+                skiplog.add("SAE J2735", "unknown_message", f"messageId={msg_id}", "")
+            else:
+                j2735_msgs_seen.add(label)
+                lookup = LOOKUPS.get(f"SAE J2735::{label}")
+                table = J2735_TABLES.get(label)
+                if lookup is None or table is None:
+                    skiplog.add("SAE J2735", "no_table", label, "")
+                else:
+                    provisional = (label == "RSA")
+                    if provisional:
+                        rsa_seen = True
+                    ok, det = evaluate_records(records, lookup, "SAE J2735", label, faillog, skiplog, provisional=provisional, collect_detail=collect)
+                    sok = check_structure(records, table, "SAE J2735", label, faillog, provisional=provisional)
+                    msg_ok = ok and sok
+                    write_msg_detail(f"SAE J2735 : {label}", det, msg_ok)
+                    packet_ok = packet_ok and msg_ok
 
-            lookup = LOOKUPS.get(f"SAE J2735::{label}")
-            table = J2735_TABLES.get(label)
-            if lookup is None or table is None:
-                skiplog.add("SAE J2735", "no_table", label, "")
-                continue
+        if detail_f:
+            detail_f.write(f"*** PACKET COMPLIANT: {packet_ok}\n")
 
-            provisional = (label == "RSA")
-            if provisional:
-                rsa_seen = True
-
-            ok = evaluate_records(records, lookup, "SAE J2735", label,
-                                  faillog, skiplog, provisional=provisional)
-            sok = check_structure(records, table, "SAE J2735", label,
-                                  faillog, provisional=provisional)
-            file_ok = file_ok and ok and sok
+        file_ok = file_ok and packet_ok
 
     stats = {
         "packets": packet_count,
@@ -680,75 +683,81 @@ def analyze_file(pdml_path, verbose=False):
 
 
 # create formatted, huaman readable report
-def print_report(pdml_path, file_ok, faillog, skiplog, stats, verbose=False):
-    print("\n" + "=" * 78)
-    print(f"CONFORMANCE REPORT: {pdml_path}")
-    print("=" * 78)
-    print(f"  Packets analyzed : {stats['packets']}")
+def build_report(pdml_path, file_ok, faillog, skiplog, stats, verbose=False):
+    #Build the full summary report as a string (for console + file).
+    lines = []
+    def w(s=""):
+        lines.append(s)
+
+    w("=" * 70)
+    w(f"CONFORMANCE REPORT: {pdml_path}")
+    w("=" * 70)
+    w(f"  Packets analyzed : {stats['packets']}")
     seen = [k for k, v in stats["layers_seen"].items() if v]
-    print(f"  Layers found     : {', '.join(seen) if seen else '(none)'}")
-    print(f"  J2735 messages   : {', '.join(stats['j2735_msgs']) or '(none)'}")
+    w(f"  Layers found     : {', '.join(seen) if seen else '(none)'}")
+    w(f"  J2735 messages   : {', '.join(stats['j2735_msgs']) or '(none)'}")
+    w(f"  (skipped fields: {len(skiplog.as_list())} unique (logged seperately [--show-skipped]))")
 
     if stats["rsa_seen"]:
-        print("\n  " + "!" * 60)
-        print("  NOTE: RSA messages were evaluated. The RSA reference table is")
-        print("  UNVALIDATED (no RSA traffic was available for validation).")
-        print("  RSA results are PROVISIONAL.")
-        print("  " + "!" * 60)
+        w("")
+        w("  " + "!" * 60)
+        w("  NOTE: RSA messages were evaluated. The RSA reference table is")
+        w("  UNVALIDATED (no RSA traffic was available for validation).")
+        w("  RSA results are PROVISIONAL and should not be treated as")
+        w("  authoritative conformance verdicts.")
+        w("  " + "!" * 60)
 
-    #  Overall verdict
-    print("\n" + "-" * 78)
-    if file_ok:
-        print("  FILE CONFORMANCE: PASS")
-    else:
-        print("  FILE CONFORMANCE: FAIL")
-    print("-" * 78)
+    w("")
+    w("-" * 45)
+    w("  FILE CONFORMANCE: PASS" if file_ok else "  FILE CONFORMANCE: FAIL")
+    w("-" * 45)
 
-    # Unmapped / unvalidated notice (normal mode)
+    #  Unmapped notice 
     skip_rows = skiplog.as_list()
     unmapped_rows = [r for r in skip_rows if r["category"] == "unmapped"]
     if unmapped_rows:
-        unique_unmapped = len(unmapped_rows)
-        total_occ = sum(r["occurrences"] for r in unmapped_rows)
-        print(f"\n  NOTE: {unique_unmapped} unique DATA field(s) UNMAPPED ")
-        print(f"        Run with --verbose to list them.")
+        uniq = len(unmapped_rows)
+        total = sum(r["occurrences"] for r in unmapped_rows)
+        w("")
+        w(f"  NOTE: {uniq} unique DATA field(s) UNMAPPED " f"(no reference rule; not validated), across {total} occurrences.")
+        w(f"        Run with --show-skipped to list them.")
 
-    # fail log 
+    #  Failure log (with eval_method) 
     if not faillog.is_empty():
-        print(f"\n  FAILURES ({len(faillog.as_list())} unique):")
-        print(f"  {'standard':<14}{'message':<8}{'parent':<40}"
-              f"{'field':<28}{'occ':>6}  notes")
-        for row in sorted(faillog.as_list(),
-                          key=lambda x: (x["standard"], x["message"],
-                                         x["parent"], x["field"])):
+        w("")
+        w(f"  FAILURES ({len(faillog.as_list())} unique):")
+        w(f"  {'standard':<14}{'message':<8}{'parent':<38}{'field':<26}" f"{'occ':>6}{'value':>10}{'len':>5}{'method':>12}  notes")
+        for row in sorted(faillog.as_list(), key=lambda x: (x["standard"], x["message"], x["parent"], x["field"])):
             prov = " [PROVISIONAL]" if row["unverified"] else ""
-            print(f"  {row['standard']:<14}{row['message']:<8}"
-                  f"{row['parent']:<40}{row['field']:<28}"
-                  f"{row['occurrences']:>6}  {row['notes']}{prov}")
+            val = str(row.get("sample_value"))[:9]
+            ln = row.get("sample_length")
+            m = row.get("eval_method")
+            m_name = EVAL_METHOD_NAMES.get(m, "") if m is not None else ""
+            w(f"  {row['standard']:<14}{row['message']:<8}"
+              f"{row['parent']:<38}{row['field']:<26}"
+              f"{row['occurrences']:>6}{val:>10}"
+              f"{(ln if ln is not None else ''):>5}"
+              f"{m_name:>12}  {row['notes']}{prov}")
 
-    # Skipped / unverified log (verbose only)
-    if verbose:
-        skip_rows = skiplog.as_list()
-        if skip_rows:
-            print(f"\n  SKIPPED FIELDS BY CATEGORY ({len(skip_rows)} unique) [--verbose]:")
-            print(f"  (categories: container/bitstring/encoding/reserved = intentional; "
-                    f"unmapped = coverage gap)")
-            print(f"  {'standard':<14}{'category':<16}{'parent':<40}"
-                  f"{'field':<28}{'occ':>6}")
-            for row in skip_rows:
-                print(f"  {row['standard']:<14}{row['category']:<16}"
-                      f"{row['parent']:<40}{row['field']:<28}"
-                      f"{row['occurrences']:>6}")
+    #  Skipped / unmapped table (--show-skipped) 
+    if verbose and skip_rows:
+        cat_counts = Counter(r["category"] for r in skip_rows)
+        w("")
+        w(f"  SKIPPED / UNMAPPED FIELDS ({len(skip_rows)} unique) " f"[--show-skipped]:")
+        w("(" + ", ".join(f"{c}={n}" for c, n in sorted(cat_counts.items()))+")")
+        w("  (only 'unmapped' is a coverage gap; others are intentional skips)")
+        w(f"  {'standard':<14}{'category':<12}{'parent':<38}" f"{'field':<26}{'occ':>6}")
+        for row in skip_rows:
+            w(f"  {row['standard']:<14}{row['category']:<12}" f"{row['parent']:<38}{row['field']:<26}{row['occurrences']:>6}")
 
-    print("\n" + "=" * 78)
-
+    w("")
+    w("=" * 70)
+    return "\n".join(lines)
 
 def build_mandatory_spec(refdf):
-    """
-    From a reference table, build:
-        { parent_name: [ordered list of mandatory field names] }
-    The order follows the table's row order ( ASN.1 order)
-    """
+    #From a reference table, build:
+        #{ parent_name: [ordered list of mandatory field names] }
+    #The order follows the table's row order ( ASN.1 order)
     spec = {}
     for _, row in refdf.iterrows():
         if row["mandatory"] is True or str(row["mandatory"]).lower() == "true":
@@ -757,13 +766,9 @@ def build_mandatory_spec(refdf):
 
 
 def check_structure(records, refdf, standard_label, message_label, faillog, provisional=False, flat=False):
-    """
-    flat=True: treat ALL DATA fields in this layer as ONE logical instance
-               Presence is checked; sequence is skipped
-
-    flat=False: group fields by their actual parent element instance and check
-                presence + sequence per instance (for nested protocols).
-    """
+    #flat=True: treat ALL DATA fields in this layer as ONE logical instance. Presence is checked, sequence is skipped
+    #flat=False: group fields by their actual parent element instance and check presence + sequence per instance (for nested protocols).
+    
     mandatory_spec = build_mandatory_spec(refdf)
     if not mandatory_spec:
         return True
@@ -772,18 +777,13 @@ def check_structure(records, refdf, standard_label, message_label, faillog, prov
 
     # FLAT PROTOCOLS (WSMP)
     if flat:
-        seen_fields = [r.canonical_name for r in records
-                       if r.category == Category.DATA]
+        seen_fields = [r.canonical_name for r in records if r.category == Category.DATA]
         seen_set = set(seen_fields)
         for ptype, expected in mandatory_spec.items():
             for mand_field in expected:
                 if mand_field not in seen_set:
                     structure_ok = False
-                    faillog.add(standard_label, message_label, EvalResult(
-                        parent=ptype, field=mand_field, verdict=Verdict.FAIL,
-                        value="MISSING", notes="Mandatory field missing.",
-                        unverified=provisional))
-            # Sequence intentionally NOT checked for flat protocols
+                    faillog.add(standard_label, message_label, EvalResult(parent=ptype, field=mand_field, verdict=Verdict.FAIL, value="MISSING", notes="Mandatory field missing.", unverified=provisional))
         return structure_ok
 
     #  NESTED PROTOCOLS (J2735, 1609.2)
@@ -796,8 +796,7 @@ def check_structure(records, refdf, standard_label, message_label, faillog, prov
         if parent_el is None:
             continue
         pid = id(parent_el)
-        inst = instances.setdefault(pid, {"ptype": r.canonical_parent,
-                                          "fields": [], "element": parent_el})
+        inst = instances.setdefault(pid, {"ptype": r.canonical_parent, "fields": [], "element": parent_el})
         inst["fields"].append(r.canonical_name)
 
     # detect mandatory-parent ELEMENTS that exist in the tree but may have lost their mandatory DATA child
@@ -808,12 +807,11 @@ def check_structure(records, refdf, standard_label, message_label, faillog, prov
         while anc is not None:
             aname = normalize(anc.attrib.get("name"), std, is_parent=True)
             if aname in mandatory_spec and id(anc) not in known_ids:
-                instances[id(anc)] = {"ptype": aname, "fields": [],
-                                      "element": anc}
+                instances[id(anc)] = {"ptype": aname, "fields": [], "element": anc}
                 known_ids.add(id(anc))
             anc = anc.getparent()
 
-    # Validate each instance (presence + sequence).
+    # Validate each instance (presence + sequence)
     for pid, inst in instances.items():
         ptype = inst["ptype"]
         expected = mandatory_spec.get(ptype)
@@ -827,10 +825,7 @@ def check_structure(records, refdf, standard_label, message_label, faillog, prov
         for mand_field in expected:
             if mand_field not in seen_set:
                 structure_ok = False
-                faillog.add(standard_label, message_label, EvalResult(
-                    parent=ptype, field=mand_field, verdict=Verdict.FAIL,
-                    value="MISSING", notes="Mandatory field missing.",
-                    unverified=provisional))
+                faillog.add(standard_label, message_label, EvalResult(parent=ptype, field=mand_field, verdict=Verdict.FAIL, value="MISSING", notes="Mandatory field missing.", unverified=provisional))
 
         # sequence
         expected_order = [f for f in expected if f in seen_set]
@@ -840,33 +835,69 @@ def check_structure(records, refdf, standard_label, message_label, faillog, prov
                 first_seen.append(f)
         if first_seen != expected_order:
             structure_ok = False
-            faillog.add(standard_label, message_label, EvalResult(
-                parent=ptype, field="(sequence)", verdict=Verdict.FAIL,
-                notes=(f"Mandatory field order mismatch. "
-                       f"Expected {expected_order}, saw {first_seen}."),
-                unverified=provisional))
+            faillog.add(standard_label, message_label, EvalResult(parent=ptype, field="(sequence)", verdict=Verdict.FAIL, notes=(f"Mandatory field order mismatch. " f"Expected {expected_order}, saw {first_seen}."), unverified=provisional))
 
     return structure_ok
 
-# MAIN =====================================================================
+# MAIN ==============================
 def main():
-    ap = argparse.ArgumentParser(
-        description="V2X Conformance Analyzer (J2735 / IEEE 1609.2 / 1609.3)."
-    )
-    ap.add_argument("pdml", help="PDML file to analyze")
-    ap.add_argument("--verbose", action="store_true",
-                    help="Also show skipped/unmapped/unverified fields")
-    
-    start_time = time.time()
-
+    ap = argparse.ArgumentParser(description="V2X Conformance Analyzer (J2735 / IEEE 1609.2 / 1609.3).")
+    ap.add_argument("pdml")
+    ap.add_argument("--finalverdict-only", action="store_true")
+    ap.add_argument("--show-skipped", action="store_true")
+    ap.add_argument("--outdir", default=".")
     args = ap.parse_args()
 
-    file_ok, faillog, skiplog, stats = analyze_file(args.pdml, verbose=args.verbose)
-    print_report(args.pdml, file_ok, faillog, skiplog, stats, verbose=args.verbose)
-    
-    end_time = time.time()
-    print("\n*** Execution time:", (end_time - start_time)/60 , "minutes ***")
+    # Validate input file existence
+    if not os.path.isfile(args.pdml):
+        print(f"Error: input file not found: {args.pdml}", file=sys.stderr)
+        sys.exit(1)
 
+    # Prepare output directory
+    try:
+        os.makedirs(args.outdir, exist_ok=True)
+    except OSError as e:
+        print(f"Error: could not create output directory '{args.outdir}': {e}", file=sys.stderr)
+        sys.exit(1)
+
+    base = os.path.splitext(os.path.basename(args.pdml))[0]
+    out_path = os.path.join(args.outdir, f"{base}_report.txt")
+
+    start = time.time()
+    print(f"Parsing {args.pdml} ...")
+    print("Analyzing ...")
+
+    # Open output file
+    try:
+        out_f = open(out_path, "w", encoding="utf-8")
+    except OSError as e:
+        print(f"Error: could not open output file '{out_path}': {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Analyze + write - guard against parse/write errors
+    try:
+        detail_target = None if args.finalverdict_only else out_f
+        file_ok, faillog, skiplog, stats = analyze_file(args.pdml, detail_file=detail_target)
+        summary = build_report(args.pdml, file_ok, faillog, skiplog, stats, verbose=args.show_skipped)
+        if not args.finalverdict_only:
+            out_f.write("\n\n")
+        out_f.write(summary + "\n")
+
+    except etree.XMLSyntaxError as e:
+        print(f"Error: could not parse PDML '{args.pdml}': {e}", file=sys.stderr)
+        out_f.close()
+        sys.exit(1)
+    except OSError as e:
+        print(f"Error: problem writing output: {e}", file=sys.stderr)
+        out_f.close()
+        sys.exit(1)
+    finally: # Ensure the file is always closed (even with error)
+        if not out_f.closed:
+            out_f.close()
+
+    print(summary)
+    print(f"\nOutput written to {out_path}")
+    print(f"*** Execution time: {(time.time()-start)/60:.2f} minutes ***")
 
 if __name__ == "__main__":
     main()
