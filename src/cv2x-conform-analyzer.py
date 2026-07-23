@@ -41,14 +41,13 @@ J2735_ALIASES = {
 
 IEEE16092_CANON = "ieee1609dot2."
 IEEE16092_PREFIXES = ("ieee1609dot2.", "sec.", "its.sec.", "16092.")
-IEEE16092_ALIASES = {} #FOR future use (??)
+IEEE16092_ALIASES = {} 
 
 WSMP_ALIASES = {
     "wsmp.version_v3": "wsmp.version",
     "wsmp.no_elements": "wsmp.n_ext",
     "wsmp.len.det": "wsmp.length",
     "wsmp.N_header_opt_ind": "wsmp.option",
-    "wsmp.subtype_vX": "wsmp.subtype"
 }
 
 # WSMP WAVE IE fields - skip evaluation
@@ -475,13 +474,6 @@ def _extract_string(showname):
     m = re.findall(r": (.+)$", showname or "")
     return m[0] if m else ""
 
-def summarize_records(records):
-    #Count records by category
-    counts = {}
-    for r in records:
-        counts[r.category] = counts.get(r.category, 0) + 1
-    return counts
-
 
 class FailLog:
     #Deduplicated failure log (standard, message, parent, field)
@@ -636,7 +628,7 @@ def analyze_file(pdml_path, detail_file=None):
         if layers["wsmp"]:
             layer_seen["wsmp"] = True
             ok, det = evaluate_records(layers["wsmp"], LOOKUPS["IEEE 1609.3::WSMP"], "IEEE 1609.3", "WSMP", faillog, skiplog, collect_detail=collect)
-            sok = check_structure(layers["wsmp"], WSMP_TABLE, "IEEE 1609.3", "WSMP", faillog, flat=True)
+            sok = check_structure(layers["wsmp"], MANDATORY_SPECS["IEEE 1609.3::WSMP"], "IEEE 1609.3", "WSMP", faillog, flat=True)
             msg_ok = ok and sok
             write_msg_detail("IEEE 1609.3 : WSMP", det, msg_ok)
             packet_ok = packet_ok and msg_ok
@@ -645,7 +637,7 @@ def analyze_file(pdml_path, detail_file=None):
         if layers["16092"]:
             layer_seen["16092"] = True
             ok, det = evaluate_records(layers["16092"], LOOKUPS["IEEE 1609.2::SPDU"], "IEEE 1609.2", "SPDU", faillog, skiplog, collect_detail=collect)
-            sok = check_structure(layers["16092"], IEEE16092_TABLE, "IEEE 1609.2", "SPDU", faillog)
+            sok = check_structure(layers["16092"], MANDATORY_SPECS["IEEE 1609.2::SPDU"], "IEEE 1609.2", "SPDU", faillog)
             msg_ok = ok and sok
             write_msg_detail("IEEE 1609.2 : SPDU", det, msg_ok)
             packet_ok = packet_ok and msg_ok
@@ -667,7 +659,7 @@ def analyze_file(pdml_path, detail_file=None):
                     if provisional:
                         rsa_seen = True
                     ok, det = evaluate_records(records, lookup, "SAE J2735", label, faillog, skiplog, provisional=provisional, collect_detail=collect)
-                    sok = check_structure(records, table, "SAE J2735", label, faillog, provisional=provisional)
+                    sok = check_structure(records, MANDATORY_SPECS[f"SAE J2735::{label}"], "SAE J2735", label, faillog, provisional=provisional)
                     msg_ok = ok and sok
                     write_msg_detail(f"SAE J2735 : {label}", det, msg_ok)
                     packet_ok = packet_ok and msg_ok
@@ -758,12 +750,10 @@ def build_report(pdml_path, file_ok, faillog, skiplog, stats, verbose=False):
     w("=" * 70)
     return "\n".join(lines)
 
-
-def check_structure(records, refdf, standard_label, message_label, faillog, provisional=False, flat=False):
+    
+def check_structure(records, mandatory_spec, standard_label, message_label, faillog, provisional=False, flat=False):
     #flat=True: treat ALL DATA fields in this layer as ONE logical instance. Presence is checked, sequence is skipped
     #flat=False: group fields by their actual parent element instance and check presence + sequence per instance (for nested protocols).
-    
-    mandatory_spec = build_mandatory_spec(refdf)
     if not mandatory_spec:
         return True
 
