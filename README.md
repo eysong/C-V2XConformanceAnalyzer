@@ -1,4 +1,4 @@
-# C-V2X PDML Conformance Analyzer
+# C-V2X PDML Conformance Analyzer (readme is not up to date)
 This repository contains a Python-based tool for analyzing the conformance of C-V2X messages based on PDML testing packet datasets and SAE J2735, IEEE 1609.2 and 1609.3 standards. It compares decoded packet fields against reference tables derived from the standards and reports interoperability issues including invalid values, incorrect field lengths, missing or repeated fields, and sequence violations.
 
 ## Supported Standards
