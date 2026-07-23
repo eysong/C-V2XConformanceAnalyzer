@@ -572,7 +572,10 @@ def build_lookup(refdf):
         lookup[(row["parent"], row["field"])] = row.to_dict()
     return lookup
 
-def build_mandatory_spec_cached(refdf):
+def build_mandatory_spec(refdf):
+    #From a reference table, build:
+        #{ parent_name: [ordered list of mandatory field names] }
+    #The order follows the table's row order ( ASN.1 order)
     spec = {}
     for _, row in refdf.iterrows():
         if row["mandatory"] is True or str(row["mandatory"]).lower() == "true":
@@ -585,12 +588,12 @@ LOOKUPS = {
     "IEEE 1609.2::SPDU": build_lookup(IEEE16092_TABLE),
 }
 MANDATORY_SPECS = {
-    "IEEE 1609.3::WSMP": build_mandatory_spec_cached(WSMP_TABLE),
-    "IEEE 1609.2::SPDU": build_mandatory_spec_cached(IEEE16092_TABLE),
+    "IEEE 1609.3::WSMP": build_mandatory_spec(WSMP_TABLE),
+    "IEEE 1609.2::SPDU": build_mandatory_spec(IEEE16092_TABLE),
 }
 for lbl, df in J2735_TABLES.items():
     LOOKUPS[f"SAE J2735::{lbl}"] = build_lookup(df)
-    MANDATORY_SPECS[f"SAE J2735::{lbl}"] = build_mandatory_spec_cached(df)
+    MANDATORY_SPECS[f"SAE J2735::{lbl}"] = build_mandatory_spec(df)
 
 #####
 def analyze_file(pdml_path, detail_file=None):
@@ -754,16 +757,6 @@ def build_report(pdml_path, file_ok, faillog, skiplog, stats, verbose=False):
     w("")
     w("=" * 70)
     return "\n".join(lines)
-
-def build_mandatory_spec(refdf):
-    #From a reference table, build:
-        #{ parent_name: [ordered list of mandatory field names] }
-    #The order follows the table's row order ( ASN.1 order)
-    spec = {}
-    for _, row in refdf.iterrows():
-        if row["mandatory"] is True or str(row["mandatory"]).lower() == "true":
-            spec.setdefault(row["parent"], []).append(row["field"])
-    return spec
 
 
 def check_structure(records, refdf, standard_label, message_label, faillog, provisional=False, flat=False):
