@@ -69,7 +69,8 @@ IEEE16092_TABLE = ieee16092_spdu_refdf
 WSMP_TABLE = ieee16093_wsmp_refdf
 
 # UNVERIFIED FIELDS - 1609.2 bounded-integer ranges inferred without ASN.1
-UNVERIFIED_FIELDS = { #currently none - 1609.2 ranges have been spot-verified with ASN.1 }
+UNVERIFIED_FIELDS = { #currently none - 1609.2 ranges have been spot-verified with ASN.1 
+}
 
 # RSA is unvalidated 
 UNVERIFIED_MESSAGE_TYPES = {"RSA"}
