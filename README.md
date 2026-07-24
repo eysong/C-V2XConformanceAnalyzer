@@ -1,5 +1,5 @@
 # C-V2X PDML Conformance Analyzer
-This repository contains a Python-based tool for evaluating the standards conformance of C-V2X messages. Given a PDML packet capture, it validates decded fields across SAE J2735, IEEE 1609.2 and 1609.3 standards. The repository contains the reference tables derived from each of the three standards, which the analyzer uses to validate each matched field. The tool reports conformance issues including out-of-range values, incorrect field lengths, missing or repeated fields, and sequence violations, producing an overall pass/fail verdict with a detailed report.
+This repository contains a Python-based tool for evaluating the standards conformance of C-V2X messages. Given a PDML packet capture, it validates decoded fields across SAE J2735, IEEE 1609.2 and 1609.3 standards. The repository contains the reference tables derived from each of the three standards, which the analyzer uses to validate each matched field. The tool reports conformance issues including out-of-range values, incorrect field lengths, missing mandatory fields, and sequence violations, producing an overall pass/fail verdict with a detailed report.
 
 ## Supported Standards
 * SAE J2735
@@ -24,7 +24,7 @@ _The validator is designed to be extensible: additional SAE J2735 message types 
 * Mandatory field presence and sequence validation
 * Optional field handling
 * Vendor-independent field normalization
-* Container/structrual scope handling
+* Container/structural scope handling
 * Detailed conformance reporting
 * Field, message, packet, and file level compliance summaries
 
@@ -32,17 +32,19 @@ _The validator is designed to be extensible: additional SAE J2735 message types 
 The analyzer accepts a single PDML file. This tool can be run either from the command line or through the Graphical User Interface.
 
 1. Install git and Python 3.14. The installation procedure varies depending on operating system.
-* On Debian and Ubuntu Linux, run `sudo apt install git python3-pip` in a terminal.
-    * On Windows, first download and install git from [here](https://git-scm.com/downloads/win), then download
-      and install Python 3.14 from [here](https://www.python.org/downloads/). Make sure to select "Add python.exe
-      to PATH" in the Python installer. Open a Git Bash terminal and navigate to the relevant directory.
 
 2. Clone this repository.
-
     ```shell
     git clone https://github.com/eysong/C-V2XConformanceAnalyzer.git
     cd C-V2XConformanceAnalyzer 
     ```
+    
+3. Install the required Python packages.
+    ```shell
+    pip install -r requirements.txt
+    ```
+    The GUI uses Tkinter, which is included with standard Python installations on Windows and macOS. On some Linux systems, install it separately.
+    
 ### Running the Analyzer
 **Command Line**
 
@@ -52,12 +54,12 @@ python src/cv2x-conform-analyzer.py <pdml_file> [optional flags]
 ```
 | Argument     | Description                          |
 |:---------:|:----------------------------|
-| <pdml_file>    | (required) path to PDML file to analyze  | 
-| --finalverdict-only  | Output only the summary verdict and failure log. Useful for quick pass/fail check.  |
-| --show-skipped  | Include a table of all skipped and unmapped fields in the summary |
-| --outdir <DIR>  |Specify directory to write the output report to. Defaults to current directory.|
+| `<pdml_file>`    | (required) path to PDML file to analyze  | 
+| `--finalverdict-only`  | Output only the summary verdict and failure log. Useful for quick pass/fail check.  |
+| `--show-skipped`  | Include a table of all skipped and unmapped fields in the summary |
+| `--outdir <DIR>`  |Specify directory to write the output report to. Defaults to current directory.|
 
-By default, the program writes a report file <filename>_report.txt containing full TLV/compliance detail for each packet, rolled up to per-message/per-packet verdicts. The summary verdict and failure log is written to the end of this file. A summary is printed to the console.
+By default, the program writes a report file `<filename>_report.txt` containing full TLV/compliance detail for each packet, rolled up to per-message/per-packet verdicts. The summary verdict and failure log is written to the end of this file. A summary is printed to the console.
 
 **Graphical Interface**
 
@@ -95,7 +97,7 @@ For every field in each supported protocol, the tool performs the following:
    * signer types
    * sequence-of item counts
 
-4. Mandatory sequence validation
+4. Structural validation
     * confirms that all mandatory fields are present within each message instance
     * confirms that for nested protocols, mandatory fields appear in the standard-defined order
 
@@ -124,7 +126,7 @@ The tool has been validated with data from:
 * Kapsch
 * MioVision
 * QualComm
-with Cohda data being inentionally excluded.
+with Cohda data being intentionally excluded.
 
 ### Vendor Differences
 Supporting multiple vendors required handling differences in how their Wireshark PDML dissections represent the same fields. 
@@ -136,7 +138,7 @@ The normalization process handles:
 * numbered structure variants
 * field aliases
 
-These normalizations let captures from various vendor implementatinos to match the same set of reference tables.
+These normalizations let captures from various vendor implementations to match the same set of reference tables.
 
 ## Limitations
 Current limitations
