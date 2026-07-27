@@ -152,3 +152,4 @@ Current limitations
 * SAE J2735 V2X Communications Message Set Dictionary - ASN.1
 * [IEEE 1609.2 ASN.1](https://github.com/eabalea/1609dot2-asn)
 * 2026 OmniAir MD Plugfest Datasets
+* [C-V2X Message Exchange Process Assessment Tool](https://github.com/eysong/C-V2XMsgExchangeAssessingTool) (GUI)
