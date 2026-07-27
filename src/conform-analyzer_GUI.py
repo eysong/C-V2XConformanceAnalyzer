@@ -10,13 +10,12 @@ from PIL import ImageTk, Image
 
 import cv2x-conform-analyzer
 
-
 class AnalyzerGUI:
     def __init__(self, root):
         self.root = root
         root.title("V2X Conformance Analyzer")
         root.geometry("850x850")
-        root.config(background="#e3e9f8")
+        root.config(background="#ede3f8")
 
         self.pdml_path = StringVar(value="Select a PDML file")
         self.finalonly = BooleanVar(value=False)
@@ -36,40 +35,40 @@ class AnalyzerGUI:
         try:
             self.logo = Image.open("nist_ctl_logo.png").resize((160, 29))
             self.logo = ImageTk.PhotoImage(self.logo)
-            tk.Label(root, image=self.logo, bg="#e3e9f8").place(x=0, y=5)
+            tk.Label(root, image=self.logo, bg="#ede3f8").place(x=0, y=5)
         except Exception:
             pass
-        tk.Label(root, text="V2X Conformance Analyzer", font=("Calibri", 25, "bold"), bg="#e3e9f8").grid(row=0, column=0, columnspan=3, pady=8)
+        tk.Label(root, text="V2X Conformance Analyzer", font=("Calibri", 25, "bold"), bg="#ede3f8").grid(row=0, column=0, columnspan=3, pady=8)
 
-        tk.Label(root, text="PDML File", font=("Calibri", 12), bg="#e3e9f8").grid(row=1, column=0, padx=8, sticky="w")
+        tk.Label(root, text="PDML File", font=("Calibri", 12), bg="#ede3f8").grid(row=1, column=0, padx=8, sticky="w")
         tk.Entry(root, textvariable=self.pdml_path, width=60).grid(row=1, column=1, padx=4, sticky="ew")
         b = tk.Button(root, text="Browse...", command=self.browse_pdml)
         b.grid(row=1, column=2, padx=8, sticky="w")
         self.add_hover(b, "#f0f0f0", "#E2E2E2")
 
         # Options
-        opt = tk.Frame(root, bg="#e3e9f8")
+        opt = tk.Frame(root, bg="#ede3f8")
         opt.grid(row=2, column=0, columnspan=3, sticky="w", padx=8, pady=4)
-        tk.Checkbutton(opt, text="Export final verdict only (no per-packet detail in report txt file)", variable=self.finalonly, bg="#e3e9f8", font=("Calibri", 11)).pack(anchor="w")
-        tk.Checkbutton(opt, text="Show skipped / unmapped fields", variable=self.showskipped, bg="#e3e9f8", font=("Calibri", 11)).pack(anchor="w")
+        tk.Checkbutton(opt, text="Export final verdict only (no per-packet detail in report txt file)", variable=self.finalonly, bg="#ede3f8", font=("Calibri", 11)).pack(anchor="w")
+        tk.Checkbutton(opt, text="Show skipped / unmapped fields", variable=self.showskipped, bg="#ede3f8", font=("Calibri", 11)).pack(anchor="w")
 
         # Run button
         self.run_btn = tk.Button(root, text="Analyze", font=("Calibri", 16, "bold"), command=self.start_analysis, bg="#005EA2", fg="white", width=15)
         self.run_btn.grid(row=3, column=0, columnspan=3, pady=8)
-        self.add_hover(self.run_btn, "#005EA2", "#1A4480")
+        self.add_hover(self.run_btn, "#6C00A2", "#590783")
 
         # Filename + progress
-        tk.Label(root, textvariable=self.filename_var, font=("Calibri", 11, "bold"), bg="#e3e9f8").grid(row=4, column=0, columnspan=3)
-        tk.Label(root, textvariable=self.progress_var, font=("Calibri", 11), bg="#e3e9f8").grid(row=5, column=0, columnspan=3)
+        tk.Label(root, textvariable=self.filename_var, font=("Calibri", 11, "bold"), bg="#ede3f8").grid(row=4, column=0, columnspan=3)
+        tk.Label(root, textvariable=self.progress_var, font=("Calibri", 11), bg="#ede3f8").grid(row=5, column=0, columnspan=3)
 
         # Detail box (real-time full pass/fail)
-        tk.Label(root, text="Real-time Detail:", font=("Calibri", 12), bg="#e3e9f8").grid(row=6, column=0, sticky="nw", padx=8)
+        tk.Label(root, text="Real-time Detail:", font=("Calibri", 12), bg="#ede3f8").grid(row=6, column=0, sticky="nw", padx=8)
         self.detail_box = scrolledtext.ScrolledText(root, wrap=tk.NONE, width=100, height=18)
         self.detail_box.grid(row=6, column=0, columnspan=3, rowspan=2, padx=8, pady=4, sticky="nsew")
         self.detail_box.config(background="#f3f5fa")
 
         # Summary box
-        tk.Label(root, text="Summary Report:", font=("Calibri", 12), bg="#e3e9f8").grid(row=8, column=0, sticky="nw", padx=8)
+        tk.Label(root, text="Summary Report:", font=("Calibri", 12), bg="#ede3f8").grid(row=8, column=0, sticky="nw", padx=8)
         self.summary_box = scrolledtext.ScrolledText(root, wrap=tk.WORD, width=100, height=12)
         self.summary_box.grid(row=9, column=0, columnspan=3, padx=8, pady=4, sticky="nsew")
         self.summary_box.config(background="#eef1fb")
