@@ -1,5 +1,5 @@
 # C-V2X Message Conformance Analyzer
-This repository contains a Python-based tool for evaluating the standards conformance of C-V2X messages. Given a PDML packet capture, it validates decoded fields across SAE J2735, IEEE 1609.2 and 1609.3 standards. The repository contains the reference tables derived from each of the three standards, which the analyzer uses to validate each matched field. The tool reports conformance issues including out-of-range values, incorrect field lengths, missing mandatory fields, and sequence violations, producing an overall pass/fail verdict with a detailed report.
+This repository contains a Python-based tool for evaluating the standards conformance of C-V2X messages. Given a PDML packet capture, it validates decoded fields across SAE J2735, IEEE 1609.2 and 1609.3 standards. The repository contains the knowledge tables derived from each of the three standards(ASN.1), which the analyzer uses to validate each matched field. The tool reports conformance issues including out-of-range values, incorrect field lengths, missing mandatory fields, and sequence violations, producing an overall pass/fail verdict with a detailed report.
 
 ## Supported Standards
 * SAE J2735
@@ -29,9 +29,19 @@ _The validator is designed to be extensible: additional SAE J2735 message types 
 * Field, message, packet, and file level compliance summaries
 
 ## Usage
-The analyzer accepts a single PDML file. This tool can be run either from the command line or through the Graphical User Interface.
+The analyzer accepts a single PDML file. This tool can be run either from the command line or through a graphical interface.
 
-1. Install git and Python 3.14. The installation procedure varies depending on operating system.
+### Requirements
+* Python 3.14
+* git
+* Python packages: lxml, pandas, Pillow (installed via requirements.txt)
+* Tkinter (for the GUI) — included with standard Python on Windows/macOS
+
+1. Install git and Python 3
+* Windows: Download git from git-scm.com and Python from python.org . During Python installation, check **"Add python.exe to PATH."** Then open Git Bash.
+* Debian/Ubuntu Linux: ```sudo apt install git python3 python3-pip python3-tk```
+* macOS: Install git and Python via python.org or Homebrew (```brew install git python```).
+
 
 2. Clone this repository.
     ```shell
@@ -43,8 +53,9 @@ The analyzer accepts a single PDML file. This tool can be run either from the co
     ```shell
     pip install -r requirements.txt
     ```
-    The GUI uses Tkinter, which is included with standard Python installations on Windows and macOS. On some Linux systems, install it separately.
-    
+    _Note: The GUI uses Tkinter, included with standard Python on Windows and macOS. On some Linux systems, install it separately with_ ```sudo apt install python3-tk```.
+
+   
 ### Running the Analyzer
 **Command Line**
 
@@ -58,6 +69,11 @@ python src/cv2x-conform-analyzer.py <pdml_file> [optional flags]
 | `--finalverdict-only`  | Output only the summary verdict and failure log. Useful for quick pass/fail check.  |
 | `--show-skipped`  | Include a table of all skipped and unmapped fields in the summary |
 | `--outdir <DIR>`  |Specify directory to write the output report to. Defaults to current directory.|
+
+Example:
+```shell
+python src/cv2x-conform-analyzer.py captures/commsigniaOBU4.pdml --show-skipped --outdir results/
+```
 
 By default, the program writes a report file `<filename>_report.txt` containing full TLV/compliance detail for each packet, rolled up to per-message/per-packet verdicts. The summary verdict and failure log is written to the end of this file. A summary is printed to the console.
 
@@ -73,6 +89,11 @@ The interface provides:
 * Download button to save the complete report as a .txt file and select output directory
 * Live packet-count progress during analysis and real-time detail showing per-field results
 * A summary report box showing the overall verdict and fail log if applicable
+
+**Output**
+The analyzer produces:
+* Console: a summary verdict (PASS/FAIL), layers and message types found, and a failure log if any conformance issues were detected.
+* Report file (```<filename>_report.txt```): per-packet field detail (tag/length/value/compliance), message and packet verdicts, and the final summary.
 
 
 ## Validation Process
@@ -106,7 +127,7 @@ For every field in each supported protocol, the tool performs the following:
     * collapses repeated failures with an occurrence count
     * rolls results up into field, message, packet, and overall file conformance verdicts
     * displays and writes full report to a human-readable file
-
+  
 ## Reference Tables
 Each supported message type has a reference table defining
 * field name
