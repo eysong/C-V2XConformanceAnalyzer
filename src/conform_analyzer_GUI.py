@@ -128,13 +128,13 @@ class AnalyzerGUI:
                     self.msg_queue.put(("detail", "\n".join(self._detail_buffer) + "\n"))
                     self._detail_buffer = []
 
-            file_ok, faillog, skiplog, stats = analyzer.analyze_file(pdml, detail_file=detail_target, progress_cb=progress_cb, detail_cb=detail_cb)
+            file_ok, faillog, skiplog, stats = cv2x_conform_analyzer.analyze_file(pdml, detail_file=detail_target, progress_cb=progress_cb, detail_cb=detail_cb)
 
             if self._detail_buffer:
                 self.msg_queue.put(("detail", "\n".join(self._detail_buffer) + "\n"))
                 self._detail_buffer = []
 
-            summary = analyzer.build_report(pdml, file_ok, faillog, skiplog, stats, verbose=self.showskipped.get())
+            summary = cv2x_conform_analyzer.build_report(pdml, file_ok, faillog, skiplog, stats, verbose=self.showskipped.get())
 
             # Append summary to the temp file after the detail
             if not self.finalonly.get():
