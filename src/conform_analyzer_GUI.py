@@ -8,7 +8,7 @@ import tkinter as tk
 from tkinter import (filedialog, messagebox, scrolledtext, StringVar, BooleanVar)
 from PIL import ImageTk, Image
 
-import cv2x-conform-analyzer
+import cv2x_conform_analyzer
 
 class AnalyzerGUI:
     def __init__(self, root):
