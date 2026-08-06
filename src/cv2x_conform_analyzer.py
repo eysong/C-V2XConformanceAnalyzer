@@ -587,8 +587,11 @@ for lbl, df in J2735_TABLES.items():
     LOOKUPS[f"SAE J2735::{lbl}"] = build_lookup(df)
     MANDATORY_SPECS[f"SAE J2735::{lbl}"] = build_mandatory_spec(df)
 
+#####
 def analyze_file(pdml_path, detail_file=None, progress_cb=None, detail_cb=None):
     tree = etree.parse(pdml_path)
+    root = tree.getroot()
+    total_packets = sum(1 for p in root if p.tag == "packet")
     faillog = FailLog()
     skiplog = SkipLog()
     file_ok = True
@@ -596,32 +599,41 @@ def analyze_file(pdml_path, detail_file=None, progress_cb=None, detail_cb=None):
     layer_seen = {"wsmp": False, "16092": False, "j2735": False}
     j2735_msgs_seen = set()
     rsa_seen = False
-
     detail_f = detail_file
-    collect = detail_f is not None
+    collect = (detail_f is not None) or (detail_cb is not None)
+
+    def emit_detail(text):
+        if detail_f:
+            detail_f.write(text + "\n")
+        if detail_cb:
+            detail_cb(text)
 
     def write_msg_detail(msg_label, detail_list, msg_ok):
-        if not detail_f:
+        if not collect:
             return
-        detail_f.write(f"--- {msg_label} ---\n")
+        lines = [f"--- {msg_label} ---"]
         for res in detail_list:
-            detail_f.write(f"  Field: {res.field}\n")
-            detail_f.write(f"    Tag:    {res.tag_ok}\n")
-            detail_f.write(f"    Length: {res.length}  > {res.length_ok}\n")
-            detail_f.write(f"    Value:  {res.value} > {res.value_ok}\n")
             prov = " [PROVISIONAL]" if res.unverified else ""
-            detail_f.write(f"    Compliant: " f"{res.verdict == Verdict.PASS}{prov}\n")
-        detail_f.write(f"  ** Message Compliant: {msg_ok}\n\n")
+            lines.append(f"  Field: {res.field}")
+            lines.append(f"    Tag:    {res.tag_ok}")
+            lines.append(f"    Length: {res.length}  > {res.length_ok}")
+            lines.append(f"    Value:  {res.value} > {res.value_ok}")
+            lines.append(f"    Compliant: {res.verdict == Verdict.PASS}{prov}")
+        lines.append(f"  ** Message Compliant: {msg_ok}")
+        emit_detail("\n".join(lines))
 
-    for packet in tree.getroot():
+    for packet in root:
         if packet.tag != "packet":
             continue
         packet_count += 1
+        if progress_cb and (packet_count == 1 or packet_count % 125 == 0 or packet_count == total_packets):
+            progress_cb(packet_count, total_packets)
+
+        if collect:
+            emit_detail(f"\n{'='*16} PACKET {packet_count} {'='*16}")
+
         layers = discover_packet(packet)
         packet_ok = True
-
-        if detail_f:
-            detail_f.write(f"\n{'='*16} PACKET {packet_count} {'='*16}\n")
 
         # WSMP
         if layers["wsmp"]:
@@ -663,8 +675,8 @@ def analyze_file(pdml_path, detail_file=None, progress_cb=None, detail_cb=None):
                     write_msg_detail(f"SAE J2735 : {label}", det, msg_ok)
                     packet_ok = packet_ok and msg_ok
 
-        if detail_f:
-            detail_f.write(f"*** PACKET COMPLIANT: {packet_ok}\n")
+        if collect:
+            emit_detail(f"*** PACKET COMPLIANT: {packet_ok}")
 
         file_ok = file_ok and packet_ok
 
