@@ -588,7 +588,7 @@ for lbl, df in J2735_TABLES.items():
     MANDATORY_SPECS[f"SAE J2735::{lbl}"] = build_mandatory_spec(df)
 
 #####
-def analyze_file(pdml_path, detail_file=None):
+def analyze_file(def analyze_file(pdml_path, detail_file=None, progress_cb=None, detail_cb=None):
     tree = etree.parse(pdml_path)
     faillog = FailLog()
     skiplog = SkipLog()
