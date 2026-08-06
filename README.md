@@ -61,7 +61,7 @@ The analyzer accepts a single PDML file. This tool can be run either from the co
 
 Run the analyzer on a PDML file:
 ```shell
-python src/cv2x-conform-analyzer.py <pdml_file> [optional flags]
+python src/cv2x_conform_analyzer.py <pdml_file> [optional flags]
 ```
 | Argument     | Description                          |
 |:---------:|:----------------------------|
@@ -72,7 +72,7 @@ python src/cv2x-conform-analyzer.py <pdml_file> [optional flags]
 
 Example:
 ```shell
-python src/cv2x-conform-analyzer.py captures/commsigniaOBU4.pdml --show-skipped --outdir results/
+python src/cv2x_conform_analyzer.py captures/commsigniaOBU4.pdml --show-skipped --outdir results/
 ```
 
 By default, the program writes a report file `<filename>_report.txt` containing full TLV/compliance detail for each packet, rolled up to per-message/per-packet verdicts. The summary verdict and failure log is written to the end of this file. A summary is printed to the console.
@@ -81,7 +81,7 @@ By default, the program writes a report file `<filename>_report.txt` containing 
 
 Run the GUI with: 
 ```shell
-python src/conform-analyzer_GUI.py
+python src/conform_analyzer_GUI.py
 ```
 The interface provides:
 * A file selector to designate what PDML is being analyzed
